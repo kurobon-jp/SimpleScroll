@@ -1,0 +1,14 @@
+{
+  "name": "com.github.kurobon.simple_scroll",
+  "displayName": "SimpleScroll",
+  "version": "1.0.0",
+  "unity": "2022.1",
+  "description": "SimpleScroll",
+  "author": {
+    "name": "kurobon",
+    "url": "https://github.com/kurobon-jp"
+  },
+  "keywords": [
+  ],
+  "dependencies": {}
+}
