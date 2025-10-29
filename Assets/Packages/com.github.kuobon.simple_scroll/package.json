@@ -10,5 +10,11 @@
   },
   "keywords": [
   ],
-  "dependencies": {}
+  "dependencies": {},
+  "samples": [
+    {
+      "displayName": "Sample",
+      "path": "../../Samples"
+    }
+  ]
 }
