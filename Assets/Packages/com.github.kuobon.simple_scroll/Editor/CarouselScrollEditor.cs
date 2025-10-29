@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿#if UNITY_EDITOR
+using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
@@ -21,3 +22,4 @@ namespace SimpleScroll.Editor
         }
     }
 }
+#endif
