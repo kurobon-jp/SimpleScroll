@@ -1,0 +1,17 @@
+{
+    "name": "Unity.SimpleScroll.Samples",
+    "rootNamespace": "SimpleScroll",
+    "references": [
+        "GUID:81ac9ac9dff7b0942a6b455b730ce3f5",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -9,12 +9,17 @@
     "url": "https://github.com/kurobon-jp"
   },
   "keywords": [
+    "ui",
+    "scroll",
+    "list",
+    "grid",
+    "carousel"
   ],
   "dependencies": {},
   "samples": [
     {
-      "displayName": "Sample",
-      "path": "../../Samples"
+      "displayName": "SimpleScroll Sample",
+      "path": "Samples"
     }
   ]
 }

@@ -17,6 +17,10 @@
 - Carousel sliders, card UI
 - Uniform-size lists that require fast scrolling
 
+### Installation
+Git Path (Unity Package Manager)
+> https://github.com/kurobon-jp/SimpleScroll.git?path=Assets/
+
 ---
 
 ## 🧩 Scroll Types
