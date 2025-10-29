@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 namespace SimpleScroll.Samples
@@ -7,10 +8,15 @@ namespace SimpleScroll.Samples
         [SerializeField] private CarouselScroll _carouselScroll;
         [SerializeField] private CellView _cellView;
         [SerializeField] private int _dataCount = 10;
+        [SerializeField] private TMP_Text _selected;
 
         void Start()
         {
-            _carouselScroll.OnSelected += i => Debug.Log($"selected data index: {i}");
+            _carouselScroll.OnSelected += i =>
+            {
+                _selected.text = i.ToString();
+                Debug.Log($"selected data index: {i}");
+            };
             _carouselScroll.OnReposition += (cell, i, f) =>
             {
                 var scale = Mathf.Lerp(1f, 0.5f, f);

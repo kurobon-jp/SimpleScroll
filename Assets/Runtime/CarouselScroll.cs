@@ -127,7 +127,10 @@ namespace SimpleScroll
             {
                 start = Mathf.Max(0, start);
                 end = Mathf.Min(start + _cellCount, dataCount - 1);
-                _positionIndex = Mathf.Clamp(_positionIndex, 0, dataCount - 1);
+                if (isResized)
+                {
+                    SetPositionIndex(_positionIndex, false);
+                }
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
