@@ -1,0 +1,3 @@
+Assets/TextMesh Pro/** linguist-vendored
+
+*.cs linguist-language=C#
