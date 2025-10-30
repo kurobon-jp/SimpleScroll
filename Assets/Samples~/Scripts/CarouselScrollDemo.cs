@@ -19,7 +19,7 @@ namespace SimpleScroll.Samples
             };
             _carouselScroll.OnReposition += (cell, i, f) =>
             {
-                var scale = Mathf.Lerp(1f, 0.5f, f);
+                var scale = Mathf.Lerp(1f, 0.75f, f);
                 cell.localScale = new Vector3(scale, scale, 1f);
             };
 
@@ -35,7 +35,7 @@ namespace SimpleScroll.Samples
         void IDataSource.SetData(int position, GameObject go)
         {
             if (!go.TryGetComponent<CellView>(out var cellView)) return;
-            var dataIndex = _carouselScroll.GetDataIndex(position);
+            var dataIndex = this.GetDataIndex(position);
             cellView.Setup(dataIndex, position, onClick: _ => _carouselScroll.SetPositionIndex(position));
         }
 

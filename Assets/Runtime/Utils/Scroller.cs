@@ -120,7 +120,7 @@ namespace SimpleScroll.Utils
             if (!_inertia)
             {
                 _status = ScrollStatus.Idle;
-                _velocity = 0f;
+                // _velocity = 0f;
                 return _scrollPosition;
             }
 

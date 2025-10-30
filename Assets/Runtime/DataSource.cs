@@ -17,4 +17,14 @@ namespace SimpleScroll
     {
         float GetCellViewSize(int index);
     }
+
+    public static class DataSourceExtensions
+    {
+        public static int GetDataIndex(this IDataSource source, int position)
+        {
+            var count = source.GetDataCount();
+            if (count == 0) return 0;
+            return (position % count + count) % count;
+        }
+    }
 }

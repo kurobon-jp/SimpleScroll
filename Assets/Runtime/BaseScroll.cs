@@ -147,11 +147,8 @@ namespace SimpleScroll
         void IScrollHandler.OnScroll(PointerEventData e)
         {
             if (DataSource == null && !IsScrollable) return;
-            Scroller.Stop();
-            var delta = Mathf.Abs(Vector2.Dot(e.scrollDelta, Vector2.right)) < 0.5f
-                ? e.scrollDelta.y * (_scroller.Axis > 0 ? -1 : 1)
-                : e.scrollDelta.x;
-            OnScroll(delta);
+            _scroller.Stop();
+            OnScroll(-e.scrollDelta[Scroller.Axis]);
         }
 
         protected abstract float GetScrollSize();

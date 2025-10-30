@@ -17,6 +17,8 @@ namespace SimpleScroll
         private int _cellCount;
         private int _positionIndex;
         private float _targetPosition;
+        private float _scrollDelta;
+        private float _scrollTime;
 
         private float CellStride => _cellSize + _space;
 
@@ -71,6 +73,7 @@ namespace SimpleScroll
         {
             _targetPosition = targetPosition;
             var scrollPos = Scroller.ScrollPosition;
+            var velocity = Scroller.Velocity;
             var direction = Scroller.Direction;
             var stride = CellStride * direction;
             var positionIndex = Mathf.RoundToInt(scrollPos / stride);
@@ -79,16 +82,9 @@ namespace SimpleScroll
                 positionIndex = Mathf.RoundToInt(targetPosition / stride);
                 _targetPosition = positionIndex * stride;
             }
-            else
+            else if (positionIndex == _positionIndex && Mathf.Abs(velocity) >= 10f)
             {
-                var v = Scroller.Velocity;
-                var axis = Scroller.Axis;
-                var delta = Scroller.DragDelta;
-                if (positionIndex == _positionIndex && Mathf.Abs(v) > 0 &&
-                    Mathf.Abs(Vector2.Dot(delta.normalized, new Vector2(axis == 0 ? 1 : 0, axis))) > 0.5f)
-                {
-                    positionIndex -= Math.Sign(v);
-                }
+                positionIndex -= Math.Sign(velocity);
             }
 
             SetPositionIndex(positionIndex);
@@ -96,9 +92,19 @@ namespace SimpleScroll
 
         protected override void OnScroll(float delta)
         {
-            var stopPos = Scroller.ScrollPosition / CellStride * Scroller.Direction - Math.Sign(delta);
-            var positionIndex = delta < 0 ? Mathf.CeilToInt(stopPos) : Mathf.FloorToInt(stopPos);
-            SetPositionIndex(positionIndex);
+            if ((_scrollDelta > 0 && delta > 0) || (_scrollDelta < 0 && delta < 0))
+            {
+                _scrollDelta = 0f;
+            }
+
+            _scrollDelta += delta;
+            var now = Time.unscaledTime;
+            if (now - _scrollTime > 0.1f)
+            {
+                SetPositionIndex(_positionIndex + Math.Sign(_scrollDelta));
+                _scrollTime = now;
+                _scrollDelta = 0f;
+            }
         }
 
         protected override void OnStopScroll(float velocity)
@@ -178,14 +184,6 @@ namespace SimpleScroll
         public void Next() => SetPositionIndex(_positionIndex + 1);
         public void Prev() => SetPositionIndex(_positionIndex - 1);
 
-        public int GetDataIndex(int index)
-        {
-            if (DataSource == null) return -1;
-            var count = DataSource.GetDataCount();
-            if (count == 0) return 0;
-            return (index % count + count) % count;
-        }
-
         public void SetPositionIndex(int index, bool smooth = true)
         {
             if (DataSource == null) return;
@@ -199,7 +197,7 @@ namespace SimpleScroll
 
             if (smooth && prev == index) return;
             _positionIndex = index;
-            UpdateIndicator(GetDataIndex(index));
+            UpdateIndicator(DataSource.GetDataIndex(index));
             OnSelected?.Invoke(index);
             if (!smooth)
                 Scroller.ScrollPosition = -index * CellStride;
