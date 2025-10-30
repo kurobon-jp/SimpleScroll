@@ -148,7 +148,7 @@ namespace SimpleScroll
         {
             if (DataSource == null && !IsScrollable) return;
             _scroller.Stop();
-            OnScroll(-e.scrollDelta[Scroller.Axis]);
+            OnScroll(e.scrollDelta.GetAxialValue());
         }
 
         protected abstract float GetScrollSize();

@@ -12,9 +12,9 @@ namespace SimpleScroll.Editor
         public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
             var container = new Foldout();
-            container.text = "<b>Scroll</b>";
+            container.text = "<b>Dragging</b>";
 
-            var axis = new PropertyField(property.FindPropertyRelative("_axis"));
+            // var axis = new PropertyField(property.FindPropertyRelative("_axis"));
             var inertia = new PropertyField(property.FindPropertyRelative("_inertia"));
             var deceleration = new PropertyField(property.FindPropertyRelative("_deceleration"));
             var maxVelocity = new PropertyField(property.FindPropertyRelative("_maxVelocity"));
@@ -38,7 +38,7 @@ namespace SimpleScroll.Editor
                 maxVelocity.SetEnabled(enabled);
             }); 
 
-            container.Add(axis);
+            // container.Add(axis);
             container.Add(inertia);
             container.Add(deceleration);
             container.Add(maxVelocity);

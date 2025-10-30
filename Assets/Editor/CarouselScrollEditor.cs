@@ -11,6 +11,7 @@ namespace SimpleScroll.Editor
         public override VisualElement CreateInspectorGUI()
         {
             var container = new VisualElement();
+            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._axis")));
             container.Add(new PropertyField(serializedObject.FindProperty("_viewport")));
             container.Add(new PropertyField(serializedObject.FindProperty("_content")));
             container.Add(new PropertyField(serializedObject.FindProperty("_space")));

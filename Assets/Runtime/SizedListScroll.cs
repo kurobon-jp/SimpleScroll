@@ -62,7 +62,7 @@ namespace SimpleScroll
 
         protected override void OnScroll(float delta)
         {
-            _targetPosition = Scroller.ScrollPosition + delta * 100f;
+            _targetPosition = Scroller.ScrollPosition + delta * 100f * -Scroller.Direction;
         }
 
         protected override void OnStopScroll(float velocity)

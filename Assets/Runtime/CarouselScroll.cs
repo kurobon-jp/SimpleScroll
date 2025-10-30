@@ -92,16 +92,11 @@ namespace SimpleScroll
 
         protected override void OnScroll(float delta)
         {
-            if ((_scrollDelta > 0 && delta > 0) || (_scrollDelta < 0 && delta < 0))
-            {
-                _scrollDelta = 0f;
-            }
-
             _scrollDelta += delta;
             var now = Time.unscaledTime;
-            if (now - _scrollTime > 0.1f)
+            if (now - _scrollTime > 0.1f && _scrollDelta != 0f)
             {
-                SetPositionIndex(_positionIndex + Math.Sign(_scrollDelta));
+                SetPositionIndex(_positionIndex - Math.Sign(_scrollDelta));
                 _scrollTime = now;
                 _scrollDelta = 0f;
             }
