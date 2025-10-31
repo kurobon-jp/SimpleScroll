@@ -19,7 +19,7 @@ namespace SimpleScroll
         private float _targetAnchor;
         private bool _targetSmooth;
         private int _knownSizeEndIndex = -1;
-        
+
         public ContentPadding ContentPadding
         {
             get => _contentPadding;

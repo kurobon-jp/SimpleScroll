@@ -69,8 +69,8 @@ namespace SimpleScroll
             if (DataSource == null) return;
             var viewportSize = _viewport.rect.size[_scroller.Axis];
             if (!force && Mathf.Approximately(ViewportSize, viewportSize)) return;
-            ViewportSize = _viewport.rect.size[_scroller.Axis];
-            ViewportHalf = ViewportSize * 0.5f;
+            ViewportSize = viewportSize;
+            ViewportHalf = viewportSize * 0.5f;
 
             var scrollSize = GetScrollSize();
             _scroller.Initialize(scrollSize);
@@ -93,7 +93,6 @@ namespace SimpleScroll
         {
             DataSource = dataSource;
             CellViewPool.SetDataSource(dataSource);
-            _dataCount = dataSource.GetDataCount();
         }
 
         public void Refresh(bool resetPosition = true)

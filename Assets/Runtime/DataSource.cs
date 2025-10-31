@@ -9,8 +9,12 @@ namespace SimpleScroll
     {
         int GetDataCount();
         void SetData(int index, GameObject go);
-        int GetCellViewType(int index);
         GameObject GetCellView(int index);
+
+        public int GetCellViewType(int index)
+        {
+            return 0;
+        }
     }
 
     public interface ISizedDataSource : IDataSource
