@@ -77,7 +77,11 @@ Git Path (Unity Package Manager)
 
 
 ## 🚀 Quick Start (Unity Example)
+
 ``` C#
+    /// <summary>
+    /// Minimal example implementation
+    /// </summary>
     public class ListScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private FixedListScroll _listScroll;
@@ -92,6 +96,7 @@ Git Path (Unity Package Manager)
             _listScroll.SetDataSource(this);
 
             // Refresh the scroll content to display the data immediately.
+            // Must be called after setting the data source.
             _listScroll.Refresh();
         }
 
