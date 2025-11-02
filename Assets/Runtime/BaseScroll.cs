@@ -146,7 +146,6 @@ namespace SimpleScroll
 
         void IScrollHandler.OnScroll(PointerEventData e)
         {
-            Debug.Log(e.scrollDelta);
             if (DataSource == null && !IsScrollable) return;
             _scroller.Stop();
             OnScroll(e.scrollDelta.GetAxialValue());
