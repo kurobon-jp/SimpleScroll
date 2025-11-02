@@ -5,7 +5,7 @@ namespace SimpleScroll.Samples
     public class FixedListScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private FixedListScroll _listScroll;
-        [SerializeField] private CellView _cellView;
+        [SerializeField] private GameObject _cellView;
         [SerializeField] private int _dataCount = 10;
 
         void Start()
@@ -27,14 +27,9 @@ namespace SimpleScroll.Samples
             }
         }
 
-        int IDataSource.GetCellViewType(int index)
-        {
-            return 0;
-        }
-
         GameObject IDataSource.GetCellView(int index)
         {
-            return _cellView.gameObject;
+            return _cellView;
         }
     }
 }

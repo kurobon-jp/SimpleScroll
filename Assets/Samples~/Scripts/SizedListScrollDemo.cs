@@ -5,7 +5,7 @@ namespace SimpleScroll.Samples
     public class SizedListScrollDemo : MonoBehaviour, ISizedDataSource
     {
         [SerializeField] private SizedListScroll _listScroll;
-        [SerializeField] private CellView[] _cellViews;
+        [SerializeField] private GameObject[] _cellViews;
         [SerializeField] private float[] _cellViewSizes;
         [SerializeField] private int _dataCount = 10;
 
@@ -35,7 +35,7 @@ namespace SimpleScroll.Samples
 
         GameObject IDataSource.GetCellView(int index)
         {
-            return _cellViews[GetCellViewType(index)].gameObject;
+            return _cellViews[GetCellViewType(index)];
         }
 
         float ISizedDataSource.GetCellViewSize(int index)

@@ -6,7 +6,7 @@ namespace SimpleScroll.Samples
     public class CarouselScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private CarouselScroll _carouselScroll;
-        [SerializeField] private CellView _cellView;
+        [SerializeField] private GameObject _cellView;
         [SerializeField] private int _dataCount = 10;
         [SerializeField] private TMP_Text _selected;
 
@@ -39,14 +39,9 @@ namespace SimpleScroll.Samples
             cellView.Setup(dataIndex, position, onClick: _ => _carouselScroll.SetPositionIndex(position));
         }
 
-        public int GetCellViewType(int index)
-        {
-            return 0;
-        }
-
         GameObject IDataSource.GetCellView(int index)
         {
-            return _cellView.gameObject;
+            return _cellView;
         }
     }
 }

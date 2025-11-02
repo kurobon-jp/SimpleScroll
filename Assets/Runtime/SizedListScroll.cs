@@ -133,10 +133,15 @@ namespace SimpleScroll
             UpdatePosition(_targetPosition);
         }
 
-        public override void SetNormalizedPosition(float value)
+        protected override void OnScrollbarValueChanged(float value)
         {
-            base.SetNormalizedPosition(value);
+            base.OnScrollbarValueChanged(value);
             _targetPosition = Scroller.ScrollPosition;
+        }
+
+        public void SetNormalizedPosition(float normalizedPosition)
+        {
+            OnScrollbarValueChanged(normalizedPosition);
         }
 
         public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)

@@ -20,7 +20,7 @@ namespace SimpleScroll.Utils
         [SerializeField] private bool _inertia = true;
         [SerializeField, Tooltip("px/sec²")] private float _deceleration = 10000f; // px/sec²
         [SerializeField, Tooltip("px/sec")] private float _maxVelocity = 10000f; // px/sec
-        [SerializeField, Range(0.1f, 1f)] private float _dragSensitivity = 1f;
+        [SerializeField, Range(0.1f, 1f), Tooltip("%")] private float _dragSensitivity = 1f;
 
         private ScrollStatus _status;
         private float _scrollPosition;
@@ -66,8 +66,6 @@ namespace SimpleScroll.Utils
             }
         }
 
-        internal Vector2 DragDelta { get; private set; }
-
         internal void Initialize(float scrollSize = float.PositiveInfinity)
         {
             _scrollSize = Mathf.Max(0f, scrollSize);
@@ -92,7 +90,6 @@ namespace SimpleScroll.Utils
         {
             _dragTarget = e.pointerDrag?.GetComponent<RectTransform>();
             if (_dragTarget == null) return;
-            DragDelta = Vector2.zero;
             _status = ScrollStatus.Dragging;
             _velocity = 0f;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_dragTarget, e.position, e.pressEventCamera,
@@ -101,7 +98,6 @@ namespace SimpleScroll.Utils
 
         internal void OnDrag(PointerEventData e)
         {
-            DragDelta = e.delta;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_dragTarget, e.position, e.pressEventCamera,
                 out var localPoint);
             var delta = (localPoint - _pointerPoint)[Axis] * _dragSensitivity;
@@ -116,7 +112,6 @@ namespace SimpleScroll.Utils
 
         internal float OnEndDrag(PointerEventData e)
         {
-            DragDelta = e.delta;
             if (!_inertia)
             {
                 _status = ScrollStatus.Idle;

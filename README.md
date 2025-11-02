@@ -85,7 +85,7 @@ Git Path (Unity Package Manager)
     public class ListScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private FixedListScroll _listScroll;
-        [SerializeField] private CellView _cellView;
+        [SerializeField] private GameObject _cellView;
         [SerializeField] private int _dataCount = 10;
 
         void Start()
@@ -144,21 +144,20 @@ Git Path (Unity Package Manager)
             // Return the prefab (GameObject) to be used for the specified cell index.
             // This method defines which cell view prefab should be instantiated.
 
-            // If you have multiple cell types, choose the appropriate prefab here:
-            /*
-            switch (GetCellViewType(index))
-            {
-                case 1:
-                    return _cellView1.gameObject;
-                case 2:
-                    return _cellView2.gameObject;
-                case 3:
-                    return _cellView3.gameObject;
-            }
+            /*  If you have multiple cell types, choose the appropriate prefab here:
+                switch (GetCellViewType(index))
+                {
+                    case 1:
+                        return _cellView1;
+                    case 2:
+                        return _cellView2;
+                    case 3:
+                        return _cellView3;
+                }
             */
 
             // For a single cell type, simply return the shared prefab.
-            return _cellView.gameObject;
+            return _cellView;
         }
     }
 ```

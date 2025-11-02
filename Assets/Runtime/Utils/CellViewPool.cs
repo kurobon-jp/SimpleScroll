@@ -60,7 +60,7 @@ namespace SimpleScroll.Utils
             return cellView;
         }
 
-        internal void Release(int index)
+        private void Release(int index)
         {
             if (!_visibleCells.Remove(index, out var cellView) ||
                 !_visibleCellTypes.Remove(index, out var type) ||

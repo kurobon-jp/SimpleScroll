@@ -333,8 +333,8 @@ MonoBehaviour:
   _cellSize: 320
   _space: 0
   _contentPadding:
-    start: 0
-    end: 0
+    _start: 0
+    _end: 0
 --- !u!114 &1310323425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,7 +348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleScroll.Sample.FixedListScrollDemo
   _listScroll: {fileID: 1310323424}
-  _cellView: {fileID: 3803222353255302059, guid: 1e6054733d16c6e429b9212df819f706, type: 3}
+  _cellView: {fileID: 215183801505645786, guid: 1e6054733d16c6e429b9212df819f706, type: 3}
   _dataCount: 100
 --- !u!1 &1316627405
 GameObject:

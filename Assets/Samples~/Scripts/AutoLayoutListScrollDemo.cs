@@ -5,7 +5,7 @@ namespace SimpleScroll.Samples
     public class AutoLayoutListScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private AutoLayoutListScroll _listScroll;
-        [SerializeField] private ChatView[] _cellViews;
+        [SerializeField] private GameObject[] _cellViews;
         [SerializeField] private int _dataCount = 100;
 
         void Start()
@@ -34,7 +34,7 @@ namespace SimpleScroll.Samples
 
         GameObject IDataSource.GetCellView(int index)
         {
-            return _cellViews[GetCellViewType(index)].gameObject;
+            return _cellViews[GetCellViewType(index)];
         }
     }
 }

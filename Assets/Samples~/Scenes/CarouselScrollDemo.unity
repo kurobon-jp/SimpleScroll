@@ -1317,7 +1317,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CarouselDemo
   _carouselScroll: {fileID: 2029648868}
-  _cellView: {fileID: 3803222353255302059, guid: 54c9474456312e847a3a53a414e3135c, type: 3}
+  _cellView: {fileID: 215183801505645786, guid: 54c9474456312e847a3a53a414e3135c, type: 3}
   _dataCount: 10
   _selected: {fileID: 2009462833}
 --- !u!114 &2029648865

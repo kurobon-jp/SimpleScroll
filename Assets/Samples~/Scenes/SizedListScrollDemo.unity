@@ -449,9 +449,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SimpleScroll.Samples.SizedListScrollDemo
   _listScroll: {fileID: 1310323426}
   _cellViews:
-  - {fileID: 3803222353255302059, guid: 1e6054733d16c6e429b9212df819f706, type: 3}
-  - {fileID: 3803222353255302059, guid: ddca84d923bab774ab5e263a1e1c523f, type: 3}
-  - {fileID: 3803222353255302059, guid: f3894a2e8421cda4694c58e3fe21ed1f, type: 3}
+  - {fileID: 215183801505645786, guid: 1e6054733d16c6e429b9212df819f706, type: 3}
+  - {fileID: 215183801505645786, guid: ddca84d923bab774ab5e263a1e1c523f, type: 3}
+  - {fileID: 215183801505645786, guid: f3894a2e8421cda4694c58e3fe21ed1f, type: 3}
   _cellViewSizes:
   - 320
   - 160
@@ -480,8 +480,8 @@ MonoBehaviour:
   _scrollbar: {fileID: 452546442}
   _space: 0
   _contentPadding:
-    start: 0
-    end: 0
+    _start: 0
+    _end: 0
 --- !u!1 &1316627405
 GameObject:
   m_ObjectHideFlags: 0

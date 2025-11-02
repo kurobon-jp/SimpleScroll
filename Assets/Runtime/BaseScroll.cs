@@ -38,13 +38,13 @@ namespace SimpleScroll
             }
 
             if (_scrollbar == null) return;
-            _scrollbar.onValueChanged.AddListener(SetNormalizedPosition);
+            _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
         }
 
         protected override void OnDisable()
         {
             if (_scrollbar == null) return;
-            _scrollbar.onValueChanged.RemoveListener(SetNormalizedPosition);
+            _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
         }
 
         protected override void OnRectTransformDimensionsChange()
@@ -52,8 +52,9 @@ namespace SimpleScroll
             SetDirty();
         }
 
-        public virtual void SetNormalizedPosition(float normalizedPosition)
+        protected virtual void OnScrollbarValueChanged(float normalizedPosition)
         {
+            if (_scrollbar == null) return;
             _scroller.Stop();
             _scroller.NormalizedPosition = normalizedPosition;
         }
@@ -101,7 +102,7 @@ namespace SimpleScroll
             Resize(true);
             if (resetPosition)
             {
-                SetNormalizedPosition(0);
+                OnScrollbarValueChanged(0);
             }
         }
 
@@ -145,6 +146,7 @@ namespace SimpleScroll
 
         void IScrollHandler.OnScroll(PointerEventData e)
         {
+            Debug.Log(e.scrollDelta);
             if (DataSource == null && !IsScrollable) return;
             _scroller.Stop();
             OnScroll(e.scrollDelta.GetAxialValue());

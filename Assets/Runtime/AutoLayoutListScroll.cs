@@ -230,10 +230,15 @@ namespace SimpleScroll
             Scroller.ScrollSize = _offsets[^1] + _sizes[^1] + _contentPadding.End - ViewportSize;
         }
 
-        public override void SetNormalizedPosition(float normalizedPosition)
+        protected override void OnScrollbarValueChanged(float value)
         {
-            base.SetNormalizedPosition(normalizedPosition);
+            base.OnScrollbarValueChanged(value);
             _targetPosition = Scroller.ScrollPosition;
+        }
+
+        public void SetNormalizedPosition(float normalizedPosition)
+        {
+            OnScrollbarValueChanged(normalizedPosition);
         }
 
         public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)
