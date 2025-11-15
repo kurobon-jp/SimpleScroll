@@ -5,7 +5,7 @@ namespace SimpleScroll
 {
     public class FixedListScroll : BaseScroll<IDataSource>
     {
-        [SerializeField] private float _cellSize;
+        [SerializeField] private float _cellSize = 100f;
         [SerializeField] private float _space;
         [SerializeField] private ContentPadding _contentPadding;
 

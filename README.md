@@ -91,8 +91,6 @@ Git Path (Unity Package Manager)
         void Start()
         {
             // Assign this class as the data source for the scroll view.
-            // The scroll will call IDataSource methods (GetDataCount, SetData, etc.)
-            // to populate its cells.
             _listScroll.SetDataSource(this);
 
             // Refresh the scroll content to display the data immediately.
