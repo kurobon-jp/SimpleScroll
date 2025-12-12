@@ -1,4 +1,4 @@
-﻿namespace SimpleScroll.Utils
+﻿namespace SimpleScroll
 {
     using System.Collections;
     using System.Collections.Generic;

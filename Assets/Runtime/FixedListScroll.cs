@@ -1,5 +1,4 @@
-﻿using SimpleScroll.Utils;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace SimpleScroll
 {

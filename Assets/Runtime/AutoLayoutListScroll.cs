@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using SimpleScroll.Utils;
 
 namespace SimpleScroll
 {

@@ -1,5 +1,4 @@
-﻿using SimpleScroll.Utils;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -25,7 +24,7 @@ namespace SimpleScroll
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
         protected float ViewportHalf { get; private set; }
-
+        public ScrollEvent OnValueChanged => Scroller.OnValueChanged;
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
 
@@ -65,11 +64,11 @@ namespace SimpleScroll
             _scrollbar.SetValueWithoutNotify(_scroller.NormalizedPosition);
         }
 
-        private void Resize(bool force = false)
+        private void Resize()
         {
             if (DataSource == null) return;
             var viewportSize = _viewport.rect.size[_scroller.Axis];
-            if (!force && Mathf.Approximately(ViewportSize, viewportSize)) return;
+            if (Mathf.Approximately(ViewportSize, viewportSize)) return;
             ViewportSize = viewportSize;
             ViewportHalf = viewportSize * 0.5f;
 
@@ -99,7 +98,7 @@ namespace SimpleScroll
         public void Refresh(bool resetPosition = true)
         {
             CellViewPool.ReleaseAll();
-            Resize(true);
+            Resize();
             if (resetPosition)
             {
                 OnScrollbarValueChanged(0);

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace SimpleScroll.Utils
+namespace SimpleScroll
 {
     internal class CellViewPool
     {

@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace SimpleScroll.Utils
+namespace SimpleScroll
 {
     [Serializable]
     internal class Scroller
@@ -20,8 +20,10 @@ namespace SimpleScroll.Utils
         [SerializeField] private bool _inertia = true;
         [SerializeField, Tooltip("px/sec²")] private float _deceleration = 10000f; // px/sec²
         [SerializeField, Tooltip("px/sec")] private float _maxVelocity = 10000f; // px/sec
-        [SerializeField, Range(0.1f, 1f), Tooltip("%")] private float _dragSensitivity = 1f;
-
+        [SerializeField, Range(0.1f, 1f), Tooltip("%")]
+        private float _dragSensitivity = 1f;
+        [SerializeField] private ScrollEvent _onValueChanged;
+        
         private ScrollStatus _status;
         private float _scrollPosition;
         private float _scrollDelta;
@@ -39,6 +41,7 @@ namespace SimpleScroll.Utils
         internal bool IsDragging => _status == ScrollStatus.Dragging;
         internal bool IsScrolling => _status == ScrollStatus.Scrolling;
         internal float Velocity => _velocity * -Direction;
+        internal ScrollEvent OnValueChanged;
 
         internal float ScrollSize
         {
@@ -49,7 +52,12 @@ namespace SimpleScroll.Utils
         internal float ScrollPosition
         {
             get => _scrollPosition;
-            set => _scrollPosition = value;
+            set
+            {
+                if (Mathf.Approximately(_scrollPosition, value)) return;
+                _scrollPosition = value;
+                _onValueChanged?.Invoke(value);
+            }
         }
 
         internal float NormalizedPosition
@@ -79,7 +87,7 @@ namespace SimpleScroll.Utils
                     max = 0;
                 }
 
-                _scrollPosition = Mathf.Clamp(_scrollPosition, min, max);
+                ScrollPosition = Mathf.Clamp(_scrollPosition, min, max);
             }
 
             _velocity = 0f;
@@ -106,8 +114,8 @@ namespace SimpleScroll.Utils
             var dt = Time.unscaledDeltaTime;
             var newVelocity = delta / dt;
             _velocity = Mathf.Lerp(_velocity, newVelocity, dt * 10f);
-            _scrollPosition += delta;
             _scrollDelta += delta;
+            ScrollPosition += delta;
         }
 
         internal float OnEndDrag(PointerEventData e)
@@ -116,12 +124,12 @@ namespace SimpleScroll.Utils
             {
                 _status = ScrollStatus.Idle;
                 // _velocity = 0f;
-                return _scrollPosition;
+                return ScrollPosition;
             }
 
             _status = ScrollStatus.Scrolling;
             _velocity = Mathf.Clamp(_velocity, -_maxVelocity, _maxVelocity);
-            return _scrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
+            return ScrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
         }
 
         internal float Update(float targetPosition)
@@ -145,7 +153,7 @@ namespace SimpleScroll.Utils
             }
 
             var speed = _velocity;
-            var scrollPos = _scrollPosition;
+            var scrollPos = ScrollPosition;
             if (_status == ScrollStatus.Scrolling)
             {
                 var absSpeed = Mathf.Abs(speed);
@@ -175,8 +183,8 @@ namespace SimpleScroll.Utils
                 _velocity = 0;
             }
 
-            var scrollDelta = scrollPos - _scrollPosition;
-            _scrollPosition = scrollPos;
+            var scrollDelta = scrollPos - ScrollPosition;
+            ScrollPosition = scrollPos;
             return scrollDelta;
         }
 

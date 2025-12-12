@@ -19,6 +19,7 @@ namespace SimpleScroll.Editor
             container.Add(new PropertyField(serializedObject.FindProperty("_loop")));
             container.Add(new PropertyField(serializedObject.FindProperty("_indicator")));
             container.Add(new ScrollerDrawer().CreatePropertyGUI(serializedObject.FindProperty("_scroller")));
+            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._onValueChanged")));
             return container;
         }
     }

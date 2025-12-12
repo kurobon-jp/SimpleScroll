@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace SimpleScroll.Utils
+namespace SimpleScroll
 {
     [Serializable]
     public struct ContentPadding

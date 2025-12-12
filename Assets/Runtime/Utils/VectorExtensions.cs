@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SimpleScroll.Utils
+namespace SimpleScroll
 {
     internal static class VectorExtensions
     {

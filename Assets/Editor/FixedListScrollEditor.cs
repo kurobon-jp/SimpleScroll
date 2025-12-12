@@ -19,6 +19,7 @@ namespace SimpleScroll.Editor
             container.Add(new PropertyField(serializedObject.FindProperty("_cellSize")));
             container.Add(new PropertyField(serializedObject.FindProperty("_scrollbar")));
             container.Add(new ScrollerDrawer().CreatePropertyGUI(serializedObject.FindProperty("_scroller")));
+            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._onValueChanged")));
             return container;
         }
     }
