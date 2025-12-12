@@ -20,10 +20,12 @@ namespace SimpleScroll
         [SerializeField] private bool _inertia = true;
         [SerializeField, Tooltip("px/sec²")] private float _deceleration = 10000f; // px/sec²
         [SerializeField, Tooltip("px/sec")] private float _maxVelocity = 10000f; // px/sec
+
         [SerializeField, Range(0.1f, 1f), Tooltip("%")]
         private float _dragSensitivity = 1f;
+
         [SerializeField] private ScrollEvent _onValueChanged;
-        
+
         private ScrollStatus _status;
         private float _scrollPosition;
         private float _scrollDelta;
@@ -41,7 +43,7 @@ namespace SimpleScroll
         internal bool IsDragging => _status == ScrollStatus.Dragging;
         internal bool IsScrolling => _status == ScrollStatus.Scrolling;
         internal float Velocity => _velocity * -Direction;
-        internal ScrollEvent OnValueChanged;
+        internal ScrollEvent OnValueChanged => _onValueChanged;
 
         internal float ScrollSize
         {
@@ -173,13 +175,15 @@ namespace SimpleScroll
                 _velocity = speed;
                 if (Mathf.Abs(speed) < VelocityThreshold)
                 {
-                    _status = ScrollStatus.Idle;
+                    Stop();
                     _elasticTime = 0f;
                 }
             }
             else
             {
-                scrollPos = Mathf.Lerp(scrollPos, targetPosition, deltaTime * 10f);
+                scrollPos = Mathf.Abs(scrollPos - targetPosition) < 0.1f
+                    ? targetPosition
+                    : Mathf.Lerp(scrollPos, targetPosition, deltaTime * 10f);
                 _velocity = 0;
             }
 
