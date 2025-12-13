@@ -23,7 +23,7 @@ namespace SimpleScroll
             }
         }
 
-        public Vector2 Spase
+        public Vector2 Space
         {
             get => _space;
             set

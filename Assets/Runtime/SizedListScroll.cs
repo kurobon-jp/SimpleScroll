@@ -21,7 +21,7 @@ namespace SimpleScroll
             }
         }
 
-        public float Spase
+        public float Space
         {
             get => _space;
             set

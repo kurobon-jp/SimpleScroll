@@ -67,10 +67,8 @@ namespace SimpleScroll
         private void Resize()
         {
             if (DataSource == null) return;
-            var viewportSize = _viewport.rect.size[_scroller.Axis];
-            if (Mathf.Approximately(ViewportSize, viewportSize)) return;
-            ViewportSize = viewportSize;
-            ViewportHalf = viewportSize * 0.5f;
+            ViewportSize = _viewport.rect.size[_scroller.Axis];
+            ViewportHalf = ViewportSize * 0.5f;
 
             var scrollSize = GetScrollSize();
             _scroller.Initialize(scrollSize);
