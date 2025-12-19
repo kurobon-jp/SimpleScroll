@@ -20,10 +20,9 @@ namespace SimpleScroll
         [SerializeField] private bool _inertia = true;
         [SerializeField, Tooltip("px/sec²")] private float _deceleration = 10000f; // px/sec²
         [SerializeField, Tooltip("px/sec")] private float _maxVelocity = 10000f; // px/sec
-
         [SerializeField, Range(0.1f, 1f), Tooltip("%")]
         private float _dragSensitivity = 1f;
-
+        [SerializeField] private bool _overScroll = true;
         [SerializeField] private ScrollEvent _onValueChanged;
 
         private ScrollStatus _status;
@@ -57,7 +56,7 @@ namespace SimpleScroll
             set
             {
                 if (Mathf.Approximately(_scrollPosition, value)) return;
-                _scrollPosition = value;
+                _scrollPosition = _overScroll || float.IsInfinity(_scrollSize) ? value : ClampPosition(value);
                 _onValueChanged?.Invoke(value);
             }
         }
@@ -161,7 +160,7 @@ namespace SimpleScroll
                 var absSpeed = Mathf.Abs(speed);
                 var smoothTime = Mathf.Max(0.05f, absSpeed / _deceleration);
                 scrollPos = Mathf.SmoothDamp(scrollPos, targetPosition, ref speed, smoothTime, _maxVelocity, deltaTime);
-                if (!float.IsPositiveInfinity(_scrollSize))
+                if (!float.IsInfinity(_scrollSize))
                 {
                     var axis = Axis;
                     var overMin = axis == 0 ? scrollPos > 0f : scrollPos > _scrollSize;
@@ -196,6 +195,15 @@ namespace SimpleScroll
         {
             _status = ScrollStatus.Idle;
             _velocity = 0f;
+        }
+        
+        internal float ClampPosition(float position)
+        {
+            var scrollSize = ScrollSize;
+            var axis = Axis;
+            var min = axis == 0 ? -scrollSize : 0f;
+            var max = axis == 0 ? 0f : scrollSize;
+            return Mathf.Clamp(position, min, max);
         }
     }
 }

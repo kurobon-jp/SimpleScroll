@@ -19,6 +19,7 @@ namespace SimpleScroll.Editor
             var deceleration = new PropertyField(property.FindPropertyRelative("_deceleration"));
             var maxVelocity = new PropertyField(property.FindPropertyRelative("_maxVelocity"));
             var dragSensitivity = new PropertyField(property.FindPropertyRelative("_dragSensitivity"));
+            var overScroll = new PropertyField(property.FindPropertyRelative("_overScroll"));
             deceleration.RegisterValueChangeCallback(e =>
             {
                 var field = deceleration.Q<FloatField>();
@@ -43,6 +44,7 @@ namespace SimpleScroll.Editor
             container.Add(deceleration);
             container.Add(maxVelocity);
             container.Add(dragSensitivity);
+            container.Add(overScroll);
             return container;
         }
     }

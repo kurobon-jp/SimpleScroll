@@ -165,18 +165,14 @@ namespace SimpleScroll
 
         protected float ClampPosition(float position)
         {
-            var scrollSize = _scroller.ScrollSize;
-            var axis = _scroller.Axis;
-            var min = axis == 0 ? -scrollSize : 0f;
-            var max = axis == 0 ? 0f : scrollSize;
-            return Mathf.Clamp(position, min, max);
+            return Scroller.ClampPosition(position);
         }
 
         protected void SetDirty()
         {
             _isDirty = true;
         }
-        
+
         private void SetViewportAxisPivot()
         {
             if (_viewport == null) return;
