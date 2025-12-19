@@ -83,9 +83,8 @@ namespace SimpleScroll
             }
             else
             {
-                var scrollbarSize = Mathf.Clamp01(ViewportSize / scrollSize);
-                _scrollbar.size = Mathf.Clamp(scrollbarSize, 0f, 1f - 0.001f);
-                _scrollbar.gameObject.SetActive(scrollbarSize < 1f);
+                _scrollbar.size = Mathf.Clamp01(ViewportSize / (scrollSize + ViewportSize));
+                _scrollbar.gameObject.SetActive(scrollSize > 0f);
             }
         }
 
