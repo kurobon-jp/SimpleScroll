@@ -135,10 +135,9 @@ namespace SimpleScroll
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
-            var scrollPos = axis == 0
-                ? new Vector2(scrollPosition, 0f)
-                : new Vector2(0f, scrollPosition);
-            Content.localPosition = scrollPos;
+            var contentPosition = Content.localPosition;
+            contentPosition[axis] = scrollPosition;
+            Content.localPosition = contentPosition;
             for (var i = start; i <= end; i++)
             {
                 var cellPos = i * CellStride * -direction;

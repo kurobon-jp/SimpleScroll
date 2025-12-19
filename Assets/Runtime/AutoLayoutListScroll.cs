@@ -197,10 +197,9 @@ namespace SimpleScroll
                 }
             }
 
-            var scrollPos = axis == 0
-                ? new Vector2(Scroller.ScrollPosition, 0f)
-                : new Vector2(0f, Scroller.ScrollPosition);
-            Content.localPosition = scrollPos;
+            var contentPosition = Content.localPosition;
+            contentPosition[axis] = Scroller.ScrollPosition;
+            Content.localPosition = contentPosition;
         }
 
         private void LateUpdate()

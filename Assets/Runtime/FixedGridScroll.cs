@@ -81,10 +81,9 @@ namespace SimpleScroll
             var colStride = CellStride[axis == 0 ? 1 : 0];
             var padding = _contentPadding.Start;
             var scrollPosition = Scroller.ScrollPosition;
-            var scrollPos = axis == 0
-                ? new Vector2(scrollPosition, 0f)
-                : new Vector2(0f, scrollPosition);
-            Content.localPosition = scrollPos;
+            var contentPosition = Content.localPosition;
+            contentPosition[axis] = scrollPosition;
+            Content.localPosition = contentPosition;
             scrollPosition += padding * -direction;
             var startRow = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / rowStride));
             var endRow = Mathf.FloorToInt((scrollPosition * direction + ViewportSize - 1) / rowStride);

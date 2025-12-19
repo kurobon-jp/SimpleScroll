@@ -80,10 +80,9 @@ namespace SimpleScroll
             var axis = Scroller.Axis;
             var direction = Scroller.Direction;
             var scrollPosition = Scroller.ScrollPosition;
-            var scrollPos = axis == 0
-                ? new Vector2(scrollPosition, 0f)
-                : new Vector2(0f, scrollPosition);
-            Content.localPosition = scrollPos;
+            var contentPosition = Content.localPosition;
+            contentPosition[axis] = scrollPosition;
+            Content.localPosition = contentPosition;
             scrollPosition *= direction;
             var start = Array.BinarySearch(_offsets, scrollPosition);
             if (start < 0)

@@ -66,10 +66,9 @@ namespace SimpleScroll
             var stride = CellStride;
             var padding = _contentPadding.Start;
             var scrollPosition = Scroller.ScrollPosition;
-            var scrollPos = axis == 0
-                ? new Vector2(scrollPosition, 0f)
-                : new Vector2(0f, scrollPosition);
-            Content.localPosition = scrollPos;
+            var contentPosition = Content.localPosition;
+            contentPosition[axis] = scrollPosition;
+            Content.localPosition = contentPosition;
             scrollPosition += padding * -direction;
             var start = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / stride));
             var end = Mathf.Clamp(Mathf.FloorToInt((scrollPosition * direction + ViewportSize) / stride), start,
