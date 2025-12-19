@@ -1,6 +1,6 @@
 ﻿using System.Linq;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 namespace SimpleScroll.Samples
@@ -8,7 +8,7 @@ namespace SimpleScroll.Samples
     public class ChatView : MonoBehaviour
     {
         private static readonly string _charas = " abcdefghijklmnopqrstuvwxyz";
-        [SerializeField] private TMP_Text _text;
+        [SerializeField] private Text _text;
 
         public void Setup(int index)
         {

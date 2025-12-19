@@ -1,5 +1,5 @@
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SimpleScroll.Samples
 {
@@ -8,14 +8,14 @@ namespace SimpleScroll.Samples
         [SerializeField] private CarouselScroll _carouselScroll;
         [SerializeField] private GameObject _cellView;
         [SerializeField] private int _dataCount = 10;
-        [SerializeField] private TMP_Text _selected;
+        [SerializeField] private Text _selected;
 
         void Start()
         {
             _carouselScroll.OnSelected += i =>
             {
                 _selected.text = i.ToString();
-                Debug.Log($"selected data index: {i}");
+                Debug.Log($"Selected data index: {i}");
             };
             _carouselScroll.OnReposition += (cell, i, f) =>
             {

@@ -1,5 +1,4 @@
 ﻿using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,7 +6,7 @@ namespace SimpleScroll.Samples
 {
     public class CellView : MonoBehaviour
     {
-        [SerializeField] private TMP_Text _text;
+        [SerializeField] private Text _text;
         [SerializeField] private Button _button;
 
         public void Setup(int index)
