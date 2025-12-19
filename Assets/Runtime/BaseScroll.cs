@@ -176,8 +176,24 @@ namespace SimpleScroll
         }
 
 #if UNITY_EDITOR
+        private DrivenRectTransformTracker _tracker;
+
         protected override void OnValidate()
         {
+            if (IsDestroyed()) return;
+            if (_viewport != null)
+            {
+                _tracker.Clear();
+                var axis = _scroller.Axis;
+                var properties = axis == 0
+                    ? DrivenTransformProperties.PivotX
+                    : DrivenTransformProperties.PivotY;
+                _tracker.Add(this, _viewport, properties);
+                var pivot = _viewport.pivot;
+                pivot[axis] = 0.5f;
+                _viewport.pivot = pivot;
+            }
+
             SetDirty();
         }
 #endif
