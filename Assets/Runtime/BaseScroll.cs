@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -36,6 +37,7 @@ namespace SimpleScroll
                 _viewport = GetComponent<RectTransform>();
             }
 
+            SetViewportAxisPivot();
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
         }
@@ -174,6 +176,14 @@ namespace SimpleScroll
         {
             _isDirty = true;
         }
+        
+        private void SetViewportAxisPivot()
+        {
+            if (_viewport == null) return;
+            var pivot = _viewport.pivot;
+            pivot[_scroller.Axis] = 0.5f;
+            _viewport.pivot = pivot;
+        }
 
 #if UNITY_EDITOR
         private DrivenRectTransformTracker _tracker;
@@ -189,9 +199,7 @@ namespace SimpleScroll
                     ? DrivenTransformProperties.PivotX
                     : DrivenTransformProperties.PivotY;
                 _tracker.Add(this, _viewport, properties);
-                var pivot = _viewport.pivot;
-                pivot[axis] = 0.5f;
-                _viewport.pivot = pivot;
+                EditorApplication.delayCall += SetViewportAxisPivot;
             }
 
             SetDirty();
