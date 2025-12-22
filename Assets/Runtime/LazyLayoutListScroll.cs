@@ -1,24 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace SimpleScroll
 {
-    [Obsolete("Use LazyLayoutListScroll instead")]
-    public class AutoLayoutListScroll : BaseScroll<IDataSource>
+    public class LazyLayoutListScroll : BaseScroll<ILazyLayoutDataSource>
     {
-        [SerializeField] private float _space = 10f;
-        [SerializeField] private ContentPadding _contentPadding;
         [SerializeField] private float _defaultCellSize = 100f;
+        [SerializeField] private float _space;
+        [SerializeField] private ContentPadding _contentPadding;
 
-        private readonly List<float> _offsets = new();
-        private readonly List<float> _sizes = new();
         private float _targetPosition;
         private int _targetIndex = -1;
         private float _targetAnchor;
         private bool _targetSmooth;
-        private int _knownSizeEndIndex = -1;
+        private float _normalizedPosition = float.NaN;
 
         public ContentPadding ContentPadding
         {
@@ -44,34 +40,20 @@ namespace SimpleScroll
 
         protected override float GetScrollSize()
         {
-            var dataCount = DataSource.GetDataCount();
-            _offsets.Clear();
-            _sizes.Clear();
-            _knownSizeEndIndex = -1;
-
-            var offset = _contentPadding.Start;
-            for (var i = 0; i < dataCount; i++)
-            {
-                _offsets.Add(offset);
-                var size = _defaultCellSize;
-                _sizes.Add(size);
-                offset += size;
-                if (i < dataCount - 1)
-                    offset += _space;
-            }
-
-            offset += _contentPadding.End;
-            return Mathf.Max(0f, offset - ViewportSize);
+            var totalSize = DataSource.GetTotalSize(_contentPadding, _defaultCellSize, _space);
+            return Mathf.Max(0f, totalSize - ViewportSize);
         }
 
         protected override void OnDrag(float targetPosition)
         {
             _targetPosition = targetPosition;
+            _targetIndex = -1;
         }
 
         protected override void OnScroll(float delta)
         {
             _targetPosition = Scroller.ScrollPosition + delta * 100f * -Scroller.Direction;
+            _targetIndex = -1;
         }
 
         protected override void OnStopScroll(float velocity)
@@ -95,31 +77,26 @@ namespace SimpleScroll
             scrollPosition *= direction;
 
             // 表示範囲を求める
-            var start = _offsets.BinarySearch(scrollPosition);
-            if (start < 0)
-                start = Mathf.Max(~start - 1, 0);
-
+            var start = DataSource.FindStartIndex(scrollPosition);
             var end = start;
-            var viewportSize = ViewportSize + scrollPosition - _offsets[start];
+            var offset = DataSource.GetCellViewOffset(start);
+            var viewportSize = ViewportSize + scrollPosition - offset;
             for (var i = start; i < dataCount; i++)
             {
-                viewportSize -= _sizes[i] + _space;
+                viewportSize -= DataSource.GetCellViewSize(i) + _space;
                 end = i;
                 if (viewportSize <= 0) break;
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
             var sizeDelta = 0f;
-            var fillSize = _offsets[start] - ClampPosition(scrollPosition);
+            var fillSize = offset - ClampPosition(scrollPosition);
             for (var i = start; i <= end; i++)
             {
                 var needRebuild = false;
                 if (CellViewPool.TryGetVisibleCell(i, out var cell))
                 {
-                    if (isResized)
-                    {
-                        needRebuild = true;
-                    }
+                    needRebuild |= isResized;
                 }
                 else
                 {
@@ -137,19 +114,19 @@ namespace SimpleScroll
                 }
 
                 var actualSize = cell.rect.size[axis];
-                if (!Mathf.Approximately(_sizes[i], actualSize))
+                var size = DataSource.GetCellViewSize(i);
+                if (!Mathf.Approximately(size, actualSize))
                 {
-                    sizeDelta = _sizes[i] - actualSize;
-                    _sizes[i] = actualSize;
-                    _knownSizeEndIndex = Mathf.Max(_knownSizeEndIndex, i);
-                    RebuildOffsetsFromKnownSizes();
+                    sizeDelta = size - actualSize;
+                    size = actualSize;
+                    DataSource.SetCellViewSize(i, size);
+                    var totalSize = DataSource.GetTotalSize(_contentPadding, _defaultCellSize, _space);
+                    Scroller.ScrollSize = Mathf.Max(0, totalSize - ViewportSize);
                 }
 
-                var offset = _offsets[i];
-                var size = _sizes[i];
+                offset = DataSource.GetCellViewOffset(i);
                 var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
                 cell.SetAnchoredPosition(pos, axis);
-
                 fillSize += size + _space;
                 if (end != i || !(fillSize < ViewportSize)) continue;
                 if (end < dataCount - 1)
@@ -173,21 +150,14 @@ namespace SimpleScroll
 
             if (isResized)
             {
-                if (end == dataCount - 1 && _targetIndex == -1)
-                {
-                    _targetPosition = Scroller.ScrollPosition = Scroller.ScrollSize * direction;
-                }
-                else
-                {
-                    _targetPosition = Scroller.ScrollPosition = ClampPosition(Scroller.ScrollPosition);
-                }
+                _targetPosition = Scroller.ScrollPosition = ClampPosition(Scroller.ScrollPosition);
             }
 
             if (_targetIndex >= 0)
             {
-                var targetPosition =
-                    (_offsets[_targetIndex] - (ViewportSize - _sizes[_targetIndex]) * _targetAnchor) *
-                    direction + 450;
+                var size = DataSource.GetCellViewSize(_targetIndex);
+                offset = DataSource.GetCellViewOffset(_targetIndex);
+                var targetPosition = (offset - (ViewportSize - size) * _targetAnchor) * direction;
                 if (Mathf.Abs(targetPosition - Scroller.ScrollPosition) < 1f)
                 {
                     _targetIndex = -1;
@@ -200,6 +170,12 @@ namespace SimpleScroll
                         Scroller.ScrollPosition = _targetPosition;
                     }
                 }
+            }
+
+            if (!float.IsNaN(_normalizedPosition))
+            {
+                OnScrollbarValueChanged(_normalizedPosition);
+                _normalizedPosition = float.NaN;
             }
 
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
@@ -215,23 +191,6 @@ namespace SimpleScroll
             UpdatePosition(_targetPosition);
         }
 
-        private void RebuildOffsetsFromKnownSizes()
-        {
-            var offset = _contentPadding.Start;
-            var count = _sizes.Count;
-            for (var i = 0; i < count; i++)
-            {
-                _offsets[i] = offset;
-                var size = i <= _knownSizeEndIndex ? _sizes[i] : _defaultCellSize;
-                offset += size;
-                if (i < count - 1)
-                    offset += _space;
-            }
-
-            var totalContentSize = _offsets[^1] + _sizes[^1] + _contentPadding.End;
-            Scroller.ScrollSize = Mathf.Max(0, totalContentSize - ViewportSize);
-        }
-
         protected override void OnScrollbarValueChanged(float value)
         {
             base.OnScrollbarValueChanged(value);
@@ -240,7 +199,8 @@ namespace SimpleScroll
 
         public void SetNormalizedPosition(float normalizedPosition)
         {
-            OnScrollbarValueChanged(normalizedPosition);
+            Refresh(normalizedPosition);
+            _normalizedPosition = normalizedPosition;
         }
 
         public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)

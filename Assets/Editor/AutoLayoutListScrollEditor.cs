@@ -1,4 +1,5 @@
 ﻿#if UNITY_EDITOR
+using System;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
@@ -6,6 +7,7 @@ using UnityEngine.UIElements;
 namespace SimpleScroll.Editor
 {
     [CustomEditor(typeof(AutoLayoutListScroll))]
+    [Obsolete("Obsolete")]
     public class AutoLayoutListScrollEditor : UnityEditor.Editor
     {
         public override VisualElement CreateInspectorGUI()
