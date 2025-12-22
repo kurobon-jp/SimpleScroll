@@ -30,6 +30,8 @@ namespace SimpleScroll
                 SetDirty();
             }
         }
+        
+        public Range VisibleRange { get; private set; } = new(-1);
 
         protected override float GetScrollSize()
         {
@@ -74,15 +76,14 @@ namespace SimpleScroll
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
+                VisibleRange = new Range(-1);
                 return;
             }
 
             var axis = Scroller.Axis;
             var direction = Scroller.Direction;
             var scrollPosition = Scroller.ScrollPosition;
-            var contentPosition = Content.localPosition;
-            contentPosition[axis] = scrollPosition;
-            Content.localPosition = contentPosition;
+            Content.SetLocalPosition(scrollPosition, axis);
             scrollPosition *= direction;
             var start = Array.BinarySearch(_offsets, scrollPosition);
             if (start < 0)
@@ -100,6 +101,7 @@ namespace SimpleScroll
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
+            VisibleRange = new Range(start, end);
             for (var i = start; i <= end; i++)
             {
                 if (CellViewPool.TryGetVisibleCell(i, out var cell))
@@ -109,6 +111,7 @@ namespace SimpleScroll
                 else
                 {
                     cell = CellViewPool.Get(i, Content);
+                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
@@ -117,7 +120,7 @@ namespace SimpleScroll
                 var offset = _offsets[i];
                 var size = DataSource.GetCellViewSize(i);
                 var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
-                cell.anchoredPosition = axis == 0 ? new Vector2(pos, 0f) : new Vector2(0f, pos);
+                cell.SetAnchoredPosition(pos, axis);
             }
         }
 

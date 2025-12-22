@@ -29,7 +29,7 @@ namespace SimpleScroll
             }
         }
 
-        public float Spase
+        public float Space
         {
             get => _space;
             set
@@ -38,6 +38,8 @@ namespace SimpleScroll
                 SetDirty();
             }
         }
+
+        public Range VisibleRange { get; private set; } = new(-1);
 
         protected override float GetScrollSize()
         {
@@ -81,6 +83,7 @@ namespace SimpleScroll
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
+                VisibleRange = new Range(-1);
                 return;
             }
 
@@ -99,14 +102,14 @@ namespace SimpleScroll
             var viewportSize = ViewportSize + scrollPosition - _offsets[start];
             for (var i = start; i < dataCount; i++)
             {
-                viewportSize -= _sizes[i];
+                viewportSize -= _sizes[i] + _space;
                 end = i;
-                if (viewportSize < 0) break;
+                if (viewportSize <= 0) break;
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
             var sizeDelta = 0f;
-            var fillSize = _offsets[start] - scrollPosition;
+            var fillSize = _offsets[start] - ClampPosition(scrollPosition);
             for (var i = start; i <= end; i++)
             {
                 var needRebuild = false;
@@ -120,6 +123,7 @@ namespace SimpleScroll
                 else
                 {
                     cell = CellViewPool.Get(i, Content);
+                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
@@ -143,9 +147,7 @@ namespace SimpleScroll
                 var offset = _offsets[i];
                 var size = _sizes[i];
                 var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
-                cell.anchoredPosition = axis == 0
-                    ? new Vector2(pos, 0f)
-                    : new Vector2(0f, pos);
+                cell.SetAnchoredPosition(pos, axis);
 
                 fillSize += size + _space;
                 if (end != i || !(fillSize < ViewportSize)) continue;
@@ -160,6 +162,7 @@ namespace SimpleScroll
                 }
             }
 
+            VisibleRange = new Range(start, end);
             if (sizeDelta != 0f && Math.Sign(scrollDelta) == -direction)
             {
                 sizeDelta *= -direction;
@@ -169,7 +172,7 @@ namespace SimpleScroll
 
             if (isResized)
             {
-                if (end == dataCount - 1)
+                if (end == dataCount - 1 && _targetIndex == -1)
                 {
                     _targetPosition = Scroller.ScrollPosition = Scroller.ScrollSize * direction;
                 }
@@ -181,9 +184,10 @@ namespace SimpleScroll
 
             if (_targetIndex >= 0)
             {
-                var targetPosition = (_offsets[_targetIndex] - (ViewportSize - _sizes[_targetIndex]) * _targetAnchor) *
-                                     direction;
-                if (Mathf.Approximately(targetPosition, Scroller.ScrollPosition))
+                var targetPosition =
+                    (_offsets[_targetIndex] - (ViewportSize - _sizes[_targetIndex]) * _targetAnchor) *
+                    direction + 450;
+                if (Mathf.Abs(targetPosition - Scroller.ScrollPosition) < 1f)
                 {
                     _targetIndex = -1;
                 }
@@ -192,14 +196,12 @@ namespace SimpleScroll
                     _targetPosition = targetPosition;
                     if (!_targetSmooth)
                     {
-                        Scroller.ScrollPosition = targetPosition;
+                        Scroller.ScrollPosition = _targetPosition;
                     }
                 }
             }
 
-            var contentPosition = Content.localPosition;
-            contentPosition[axis] = Scroller.ScrollPosition;
-            Content.localPosition = contentPosition;
+            Content.SetLocalPosition(Scroller.ScrollPosition, axis);
         }
 
         private void LateUpdate()
@@ -225,7 +227,8 @@ namespace SimpleScroll
                     offset += _space;
             }
 
-            Scroller.ScrollSize = _offsets[^1] + _sizes[^1] + _contentPadding.End - ViewportSize;
+            var totalContentSize = _offsets[^1] + _sizes[^1] + _contentPadding.End;
+            Scroller.ScrollSize = Mathf.Max(0, totalContentSize - ViewportSize);
         }
 
         protected override void OnScrollbarValueChanged(float value)

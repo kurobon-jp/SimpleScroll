@@ -52,6 +52,8 @@ namespace SimpleScroll
             }
         }
 
+        public Range VisibleRange { get; private set; } = new(-1);
+
         public event Action<int> OnSelected;
         public event Action<RectTransform, int, float> OnReposition;
 
@@ -115,6 +117,7 @@ namespace SimpleScroll
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
+                VisibleRange = new Range(-1);
                 UpdateIndicator(0);
                 return;
             }
@@ -135,28 +138,28 @@ namespace SimpleScroll
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
-            var contentPosition = Content.localPosition;
-            contentPosition[axis] = scrollPosition;
-            Content.localPosition = contentPosition;
+            VisibleRange = new Range(start, end);
+            Content.SetLocalPosition(scrollPosition, axis);
             for (var i = start; i <= end; i++)
             {
-                var cellPos = i * CellStride * -direction;
                 var needReposition = false;
                 if (!CellViewPool.TryGetVisibleCell(i, out var cell))
                 {
                     cell = CellViewPool.Get(i, Content);
+                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
                     needReposition = true;
                 }
 
+                var pos = i * CellStride * -direction;
                 if (isResized || needReposition)
                 {
-                    cell.anchoredPosition = axis == 0 ? new Vector2(cellPos, 0f) : new Vector2(0f, cellPos);
+                    cell.SetAnchoredPosition(pos, axis);
                 }
 
-                OnReposition?.Invoke(cell, i, Mathf.Abs(cellPos + scrollPosition) / ViewportHalf);
+                OnReposition?.Invoke(cell, i, Mathf.Abs(pos + scrollPosition) / ViewportHalf);
             }
 
             if (isResized)

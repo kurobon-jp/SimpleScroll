@@ -10,7 +10,7 @@ namespace SimpleScroll
         IScrollHandler where TDataSource : IDataSource
     {
         [SerializeField] private RectTransform _viewport;
-        [SerializeField] private Transform _content;
+        [SerializeField] private RectTransform _content;
         [SerializeField] private Scroller _scroller;
         [SerializeField] private Scrollbar _scrollbar;
 
@@ -20,7 +20,7 @@ namespace SimpleScroll
         private bool _isResized;
 
         internal Scroller Scroller => _scroller;
-        protected Transform Content => _content;
+        protected RectTransform Content => _content;
         internal CellViewPool CellViewPool { get; } = new();
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
@@ -37,13 +37,16 @@ namespace SimpleScroll
                 _viewport = GetComponent<RectTransform>();
             }
 
-            SetViewportAxisPivot();
+            SetAxisPivots();
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
         }
 
         protected override void OnDisable()
         {
+#if UNITY_EDITOR
+            _tracker.Clear();
+#endif
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
         }
@@ -94,14 +97,16 @@ namespace SimpleScroll
             CellViewPool.SetDataSource(dataSource);
         }
 
-        public void Refresh(bool resetPosition = true)
+        public void Refresh()
         {
             CellViewPool.ReleaseAll();
             Resize();
-            if (resetPosition)
-            {
-                OnScrollbarValueChanged(0);
-            }
+        }
+
+        public void Refresh(float normalizedPosition)
+        {
+            Refresh();
+            OnScrollbarValueChanged(normalizedPosition);
         }
 
         protected void UpdatePosition(float targetPosition)
@@ -110,7 +115,7 @@ namespace SimpleScroll
             var dataCount = DataSource.GetDataCount();
             if (dataCount != _dataCount || _isDirty)
             {
-                Refresh(false);
+                Refresh();
                 _dataCount = dataCount;
                 _isDirty = false;
             }
@@ -172,12 +177,18 @@ namespace SimpleScroll
             _isDirty = true;
         }
 
-        private void SetViewportAxisPivot()
+        private void SetAxisPivots()
         {
-            if (_viewport == null) return;
-            var pivot = _viewport.pivot;
-            pivot[_scroller.Axis] = 0.5f;
-            _viewport.pivot = pivot;
+            var axis = _scroller.Axis;
+            if (_viewport != null)
+            {
+                _viewport.SetPivot(0.5f, axis);
+            }
+
+            if (_content != null)
+            {
+                _content.SetPivot(0.5f, axis);
+            }
         }
 
 #if UNITY_EDITOR
@@ -186,17 +197,22 @@ namespace SimpleScroll
         protected override void OnValidate()
         {
             if (IsDestroyed()) return;
+            _tracker.Clear();
+            var axis = _scroller.Axis;
+            var properties = axis == 0
+                ? DrivenTransformProperties.PivotX
+                : DrivenTransformProperties.PivotY;
             if (_viewport != null)
             {
-                _tracker.Clear();
-                var axis = _scroller.Axis;
-                var properties = axis == 0
-                    ? DrivenTransformProperties.PivotX
-                    : DrivenTransformProperties.PivotY;
                 _tracker.Add(this, _viewport, properties);
-                EditorApplication.delayCall += SetViewportAxisPivot;
             }
 
+            if (_content != null)
+            {
+                _tracker.Add(this, _content, properties);
+            }
+
+            EditorApplication.delayCall += SetAxisPivots;
             SetDirty();
         }
 #endif

@@ -42,6 +42,8 @@ namespace SimpleScroll
                 SetDirty();
             }
         }
+        
+        public Range VisibleRange { get; private set; } = new(-1);
 
         protected override float GetScrollSize()
         {
@@ -72,6 +74,7 @@ namespace SimpleScroll
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
+                VisibleRange = new Range(-1);
                 return;
             }
 
@@ -81,14 +84,14 @@ namespace SimpleScroll
             var colStride = CellStride[axis == 0 ? 1 : 0];
             var padding = _contentPadding.Start;
             var scrollPosition = Scroller.ScrollPosition;
-            var contentPosition = Content.localPosition;
-            contentPosition[axis] = scrollPosition;
-            Content.localPosition = contentPosition;
+            Content.SetLocalPosition(scrollPosition, axis);
             scrollPosition += padding * -direction;
             var startRow = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / rowStride));
             var endRow = Mathf.FloorToInt((scrollPosition * direction + ViewportSize - 1) / rowStride);
-            CellViewPool.ReleaseOutOfRange(startRow * _column, (endRow + 1) * _column);
-
+            var start = startRow * _column;
+            var end = Mathf.Min((endRow + 1) * _column, dataCount - 1);
+            CellViewPool.ReleaseOutOfRange(start, end);
+            VisibleRange = new Range(start, end);
             for (var row = startRow; row <= endRow; row++)
             {
                 var rowPos = (row * rowStride - ViewportHalf + _cellSize[axis] * 0.5f + padding) * -direction;
@@ -103,13 +106,14 @@ namespace SimpleScroll
                     else
                     {
                         cell = CellViewPool.Get(i, Content);
+                        cell.pivot = new Vector2(0.5f, 0.5f);
                         var go = cell.gameObject;
                         go.SetActive(true);
                         DataSource.SetData(i, go);
                     }
 
                     var colPos = colStride * col - colStride * (_column - 1) * 0.5f;
-                    cell.localPosition =
+                    cell.anchoredPosition =
                         axis == 0 ? new Vector2(rowPos, colPos * direction) : new Vector2(colPos, rowPos);
                 }
             }
@@ -135,7 +139,7 @@ namespace SimpleScroll
         {
             OnScrollbarValueChanged(normalizedPosition);
         }
-        
+
         public void SetPositionIndex(int index, float pivot = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;

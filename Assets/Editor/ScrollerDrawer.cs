@@ -29,7 +29,7 @@ namespace SimpleScroll.Editor
             maxVelocity.RegisterValueChangeCallback(e =>
             {
                 var field = maxVelocity.Q<FloatField>();
-                field.value = Mathf.Clamp(field.value, 1f, float.MaxValue);
+                field.value = Mathf.Clamp(field.value, 10f, float.MaxValue);
             });
             
             inertia.RegisterValueChangeCallback(e =>

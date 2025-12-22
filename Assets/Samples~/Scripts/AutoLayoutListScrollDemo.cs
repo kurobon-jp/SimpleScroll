@@ -1,7 +1,9 @@
+using System;
 using UnityEngine;
 
 namespace SimpleScroll.Samples
 {
+    [Obsolete("Obsolete")]
     public class AutoLayoutListScrollDemo : MonoBehaviour, IDataSource
     {
         [SerializeField] private AutoLayoutListScroll _listScroll;

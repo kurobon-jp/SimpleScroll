@@ -32,6 +32,8 @@ namespace SimpleScroll
             }
         }
 
+        public Range VisibleRange { get; private set; } = new(-1);
+
         protected override float GetScrollSize()
         {
             var dataCount = DataSource.GetDataCount();
@@ -58,6 +60,7 @@ namespace SimpleScroll
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
+                VisibleRange = new Range(-1);
                 return;
             }
 
@@ -66,14 +69,13 @@ namespace SimpleScroll
             var stride = CellStride;
             var padding = _contentPadding.Start;
             var scrollPosition = Scroller.ScrollPosition;
-            var contentPosition = Content.localPosition;
-            contentPosition[axis] = scrollPosition;
-            Content.localPosition = contentPosition;
+            Content.SetLocalPosition(scrollPosition, axis);
             scrollPosition += padding * -direction;
             var start = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / stride));
             var end = Mathf.Clamp(Mathf.FloorToInt((scrollPosition * direction + ViewportSize) / stride), start,
                 dataCount - 1);
             CellViewPool.ReleaseOutOfRange(start, end);
+            VisibleRange = new Range(start, end);
             for (var i = start; i <= end; i++)
             {
                 if (CellViewPool.TryGetVisibleCell(i, out var cell))
@@ -83,13 +85,14 @@ namespace SimpleScroll
                 else
                 {
                     cell = CellViewPool.Get(i, Content);
+                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
                 }
 
                 var pos = (i * CellStride - ViewportHalf + _cellSize * 0.5f + padding) * -direction;
-                cell.anchoredPosition = axis == 0 ? new Vector2(pos, 0f) : new Vector2(0f, pos);
+                cell.SetAnchoredPosition(pos, axis);
             }
         }
 
