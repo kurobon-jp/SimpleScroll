@@ -58,7 +58,6 @@ namespace SimpleScroll
 
         protected virtual void OnScrollbarValueChanged(float normalizedPosition)
         {
-            if (_scrollbar == null) return;
             _scroller.Stop();
             _scroller.NormalizedPosition = normalizedPosition;
         }
