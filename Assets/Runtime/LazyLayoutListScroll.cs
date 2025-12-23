@@ -91,9 +91,9 @@ namespace SimpleScroll
             var sizeDelta = 0f;
             for (var i = start; i <= end; i++)
             {
-                sizeDelta += Layout(i, isResized, axis, direction);
-                if (end >= dataCount - 1 ||
-                    !(DataSource.GetCellViewOffset(end + 1) < scrollPosition + ViewportSize)) continue;
+                sizeDelta += LayoutCell(i, isResized, axis, direction, 0f);
+                if (end != i || end >= dataCount - 1 ||
+                    DataSource.GetCellViewOffset(end + 1) >= scrollPosition + ViewportSize) continue;
                 end++;
             }
 
@@ -129,10 +129,25 @@ namespace SimpleScroll
             }
 
             scrollPosition = Scroller.ScrollPosition * direction;
-            var visibleStart = DataSource.FindStartIndex(Scroller.ScrollPosition * direction);
-            var visibleEnd = DataSource.FindStartIndex(scrollPosition + ViewportSize);
-            VisibleRange = new Range(visibleStart, visibleEnd);
+            sizeDelta = 0f;
+            if (start > 0 && DataSource.GetCellViewOffset(start) > scrollPosition)
+            {
+                do
+                {
+                    sizeDelta = LayoutCell(--start, isResized, axis, direction, sizeDelta, true);
+                } while (DataSource.GetCellViewOffset(start) + sizeDelta > scrollPosition);
+            }
 
+            var visibleStart = start;
+            var visibleEnd = end;
+            scrollPosition -= sizeDelta;
+            if (sizeDelta != 0f)
+            {
+                visibleStart = DataSource.FindStartIndex(scrollPosition);
+                visibleEnd = DataSource.FindStartIndex(scrollPosition + ViewportSize);
+            }
+
+            VisibleRange = new Range(visibleStart, visibleEnd);
             if (!float.IsNaN(_normalizedPosition))
             {
                 OnScrollbarValueChanged(_normalizedPosition);
@@ -140,9 +155,13 @@ namespace SimpleScroll
             }
 
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
+
+            _targetPosition -= sizeDelta;
+            Scroller.ScrollPosition -= sizeDelta;
         }
 
-        private float Layout(int index, bool isResized, int axis, int direction, bool isDeltaOffset = false)
+        private float LayoutCell(int index, bool isResized, int axis, int direction, float sizeDelta,
+            bool isDeltaOffset = false)
         {
             var needRebuild = false;
             if (CellViewPool.TryGetVisibleCell(index, out var cell))
@@ -167,10 +186,9 @@ namespace SimpleScroll
 
             var actualSize = cell.rect.size[axis];
             var size = DataSource.GetCellViewSize(index);
-            var sizeDelta = 0f;
             if (!Mathf.Approximately(size, actualSize))
             {
-                sizeDelta = size - actualSize;
+                sizeDelta += size - actualSize;
                 size = actualSize;
                 DataSource.SetCellViewSize(index, size);
                 var contentSize = DataSource.GetTotalContentSize(_contentPadding, _defaultCellSize, _space);
