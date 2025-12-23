@@ -5,7 +5,11 @@ using UnityEngine.EventSystems;
 namespace SimpleScroll
 {
     [Serializable]
+#if UNITY_EDITOR
+    public class Scroller
+#else
     internal class Scroller
+#endif
     {
         private enum ScrollStatus
         {
@@ -20,8 +24,10 @@ namespace SimpleScroll
         [SerializeField] private bool _inertia = true;
         [SerializeField, Tooltip("px/sec²")] private float _deceleration = 10000f; // px/sec²
         [SerializeField, Tooltip("px/sec")] private float _maxVelocity = 10000f; // px/sec
+
         [SerializeField, Range(0.1f, 1f), Tooltip("%")]
         private float _dragSensitivity = 1f;
+
         [SerializeField] private bool _overScroll = true;
         [SerializeField] private ScrollEvent _onValueChanged;
 
@@ -196,7 +202,7 @@ namespace SimpleScroll
             _status = ScrollStatus.Idle;
             _velocity = 0f;
         }
-        
+
         internal float ClampPosition(float position)
         {
             var scrollSize = ScrollSize;
