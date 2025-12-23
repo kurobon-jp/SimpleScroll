@@ -40,8 +40,8 @@ namespace SimpleScroll
 
         protected override float GetScrollSize()
         {
-            var totalSize = DataSource.GetTotalSize(_contentPadding, _defaultCellSize, _space);
-            return Mathf.Max(0f, totalSize - ViewportSize);
+            var contentSize = DataSource.GetTotalContentSize(_contentPadding, _defaultCellSize, _space);
+            return Mathf.Max(0f, contentSize - ViewportSize);
         }
 
         protected override void OnDrag(float targetPosition)
@@ -76,7 +76,6 @@ namespace SimpleScroll
 
             scrollPosition *= direction;
 
-            // 表示範囲を求める
             var start = DataSource.FindStartIndex(scrollPosition);
             var end = start;
             var offset = DataSource.GetCellViewOffset(start);
@@ -90,57 +89,14 @@ namespace SimpleScroll
 
             CellViewPool.ReleaseOutOfRange(start, end);
             var sizeDelta = 0f;
-            var fillSize = offset - ClampPosition(scrollPosition);
             for (var i = start; i <= end; i++)
             {
-                var needRebuild = false;
-                if (CellViewPool.TryGetVisibleCell(i, out var cell))
-                {
-                    needRebuild |= isResized;
-                }
-                else
-                {
-                    cell = CellViewPool.Get(i, Content);
-                    cell.SetPivot(0.5f, axis);
-                    var go = cell.gameObject;
-                    go.SetActive(true);
-                    DataSource.SetData(i, go);
-                    needRebuild = true;
-                }
-
-                if (needRebuild)
-                {
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(cell);
-                }
-
-                var actualSize = cell.rect.size[axis];
-                var size = DataSource.GetCellViewSize(i);
-                if (!Mathf.Approximately(size, actualSize))
-                {
-                    sizeDelta = size - actualSize;
-                    size = actualSize;
-                    DataSource.SetCellViewSize(i, size);
-                    var totalSize = DataSource.GetTotalSize(_contentPadding, _defaultCellSize, _space);
-                    Scroller.ScrollSize = Mathf.Max(0, totalSize - ViewportSize);
-                }
-
-                offset = DataSource.GetCellViewOffset(i);
-                var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
-                cell.SetAnchoredPosition(pos, axis);
-                fillSize += size + _space;
-                if (end != i || !(fillSize < ViewportSize)) continue;
-                if (end < dataCount - 1)
-                {
-                    end++;
-                }
-                else if (start > 0)
-                {
-                    start--;
-                    i = start - 1;
-                }
+                sizeDelta += Layout(i, isResized, axis, direction);
+                if (end >= dataCount - 1 ||
+                    !(DataSource.GetCellViewOffset(end + 1) < scrollPosition + ViewportSize)) continue;
+                end++;
             }
 
-            VisibleRange = new Range(start, end);
             if (sizeDelta != 0f && Math.Sign(scrollDelta) == -direction)
             {
                 sizeDelta *= -direction;
@@ -172,6 +128,11 @@ namespace SimpleScroll
                 }
             }
 
+            scrollPosition = Scroller.ScrollPosition * direction;
+            var visibleStart = DataSource.FindStartIndex(Scroller.ScrollPosition * direction);
+            var visibleEnd = DataSource.FindStartIndex(scrollPosition + ViewportSize);
+            VisibleRange = new Range(visibleStart, visibleEnd);
+
             if (!float.IsNaN(_normalizedPosition))
             {
                 OnScrollbarValueChanged(_normalizedPosition);
@@ -179,6 +140,52 @@ namespace SimpleScroll
             }
 
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
+        }
+
+        private float Layout(int index, bool isResized, int axis, int direction, bool isDeltaOffset = false)
+        {
+            var needRebuild = false;
+            if (CellViewPool.TryGetVisibleCell(index, out var cell))
+            {
+                needRebuild |= isResized;
+            }
+            else
+            {
+                cell = CellViewPool.Get(index, Content);
+                cell.SetPivot(0.5f, axis);
+                cell.SetAnchor(0.5f, axis);
+                var go = cell.gameObject;
+                go.SetActive(true);
+                DataSource.SetData(index, go);
+                needRebuild = true;
+            }
+
+            if (needRebuild)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(cell);
+            }
+
+            var actualSize = cell.rect.size[axis];
+            var size = DataSource.GetCellViewSize(index);
+            var sizeDelta = 0f;
+            if (!Mathf.Approximately(size, actualSize))
+            {
+                sizeDelta = size - actualSize;
+                size = actualSize;
+                DataSource.SetCellViewSize(index, size);
+                var contentSize = DataSource.GetTotalContentSize(_contentPadding, _defaultCellSize, _space);
+                Scroller.ScrollSize = Mathf.Max(0, contentSize - ViewportSize);
+            }
+
+            var offset = DataSource.GetCellViewOffset(index);
+            var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
+            if (isDeltaOffset)
+            {
+                pos -= sizeDelta;
+            }
+
+            cell.SetAnchoredPosition(pos, axis);
+            return sizeDelta;
         }
 
         private void LateUpdate()
@@ -197,10 +204,15 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetNormalizedPosition(float normalizedPosition)
+        public override void Refresh(float normalizedPosition)
         {
-            Refresh(normalizedPosition);
+            base.Refresh(normalizedPosition);
             _normalizedPosition = normalizedPosition;
+        }
+
+        public void SetScrollPosition(float scrollPosition)
+        {
+            _targetPosition = Scroller.ScrollPosition = scrollPosition;
         }
 
         public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)

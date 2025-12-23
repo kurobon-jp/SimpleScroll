@@ -85,7 +85,7 @@ namespace SimpleScroll
             }
             else
             {
-                _scrollbar.size = Mathf.Clamp01(ViewportSize / (scrollSize + ViewportSize));
+                _scrollbar.size = Mathf.Max(Mathf.Clamp01(ViewportSize / (scrollSize + ViewportSize)), 0.1f);
                 _scrollbar.gameObject.SetActive(scrollSize > 0f);
             }
         }
@@ -102,7 +102,7 @@ namespace SimpleScroll
             Resize();
         }
 
-        public void Refresh(float normalizedPosition)
+        public virtual void Refresh(float normalizedPosition)
         {
             Refresh();
             OnScrollbarValueChanged(normalizedPosition);

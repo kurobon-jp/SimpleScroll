@@ -15,6 +15,16 @@ namespace SimpleScroll
             pivot[axis] = value;
             self.pivot = pivot;
         }
+        
+        internal static void SetAnchor(this RectTransform self, float value, int axis)
+        {
+            var anchorMin = self.anchorMin;
+            var anchorMax = self.anchorMax;
+            anchorMin[axis] = value;
+            anchorMax[axis] = value;
+            self.anchorMin = anchorMin;
+            self.anchorMax = anchorMax;
+        }
 
         internal static void SetAnchoredPosition(this RectTransform self, float value, int axis)
         {

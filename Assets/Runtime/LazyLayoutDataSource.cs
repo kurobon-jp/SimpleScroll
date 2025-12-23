@@ -6,7 +6,7 @@ namespace SimpleScroll
 {
     public interface ILazyLayoutDataSource : ISizedDataSource
     {
-        float GetTotalSize(ContentPadding padding, float defaultSize, float space);
+        float GetTotalContentSize(ContentPadding padding, float defaultSize, float space);
         int FindStartIndex(float position);
         float　GetCellViewOffset(int index);
         void SetCellViewSize(int index, float size);
@@ -30,7 +30,7 @@ namespace SimpleScroll
             _data = data;
         }
 
-        public float GetTotalSize(ContentPadding padding, float defaultSize, float space)
+        public float GetTotalContentSize(ContentPadding padding, float defaultSize, float space)
         {
             var offset = padding.Start;
             var dataCount = GetDataCount();
