@@ -238,11 +238,6 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetNormalizedPosition(float normalizedPosition)
-        {
-            OnScrollbarValueChanged(normalizedPosition);
-        }
-
         public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
