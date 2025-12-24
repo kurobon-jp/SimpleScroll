@@ -61,7 +61,7 @@ namespace SimpleScroll
             get => _scrollPosition;
             set
             {
-                if (Mathf.Approximately(_scrollPosition, value)) return;
+                if (_scrollPosition == value) return;
                 _scrollPosition = _overScroll || float.IsInfinity(_scrollSize) ? value : ClampPosition(value);
                 _onValueChanged?.Invoke(value);
             }
@@ -186,14 +186,16 @@ namespace SimpleScroll
             }
             else
             {
-                scrollPos = Mathf.Abs(scrollPos - targetPosition) < 0.1f
-                    ? targetPosition
-                    : Mathf.Lerp(scrollPos, targetPosition, deltaTime * 10f);
+                scrollPos = Mathf.Lerp(scrollPos, targetPosition, deltaTime * 10f);
                 _velocity = 0;
             }
 
             var scrollDelta = scrollPos - ScrollPosition;
-            ScrollPosition = scrollPos;
+            if (Mathf.Abs(scrollDelta) > 0.001f)
+            {
+                ScrollPosition = scrollPos;
+            }
+
             return scrollDelta;
         }
 

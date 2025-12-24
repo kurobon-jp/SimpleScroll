@@ -79,14 +79,15 @@ namespace SimpleScroll
             _isResized = true;
 
             if (_scrollbar == null) return;
-            if (float.IsInfinity(scrollSize))
+            if (float.IsInfinity(scrollSize) || scrollSize < ViewportSize)
             {
                 _scrollbar.gameObject.SetActive(false);
             }
             else
             {
-                _scrollbar.size = Mathf.Max(Mathf.Clamp01(ViewportSize / (scrollSize + ViewportSize)), 0.1f);
-                _scrollbar.gameObject.SetActive(scrollSize > 0f);
+                var size = Mathf.Clamp01(ViewportSize /scrollSize);
+                _scrollbar.gameObject.SetActive(size < 1f);
+                _scrollbar.size = Mathf.Max(size, 0.05f);
             }
         }
 
