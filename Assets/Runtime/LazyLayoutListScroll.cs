@@ -120,7 +120,7 @@ namespace SimpleScroll
                 }
                 else
                 {
-                    _targetPosition = targetPosition;
+                    _targetPosition = ClampPosition(targetPosition);
                     if (!_targetSmooth)
                     {
                         Scroller.ScrollPosition = _targetPosition;

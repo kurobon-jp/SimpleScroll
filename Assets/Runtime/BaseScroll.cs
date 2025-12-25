@@ -1,4 +1,6 @@
-﻿using UnityEditor;
+﻿#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -25,7 +27,7 @@ namespace SimpleScroll
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
         protected float ViewportHalf { get; private set; }
-        public ScrollEvent OnValueChanged => Scroller.OnValueChanged;
+        public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
 
@@ -58,19 +60,20 @@ namespace SimpleScroll
 
         protected virtual void OnScrollbarValueChanged(float normalizedPosition)
         {
+            if (_scroller == null) return;
             _scroller.Stop();
             _scroller.NormalizedPosition = normalizedPosition;
         }
 
         private void UpdateScrollbar()
         {
-            if (_scrollbar == null) return;
+            if (_scrollbar == null || _scroller == null) return;
             _scrollbar.SetValueWithoutNotify(_scroller.NormalizedPosition);
         }
 
         private void Resize()
         {
-            if (DataSource == null) return;
+            if (DataSource == null || _scroller == null) return;
             ViewportSize = _viewport.rect.size[_scroller.Axis];
             ViewportHalf = ViewportSize * 0.5f;
 
@@ -79,14 +82,14 @@ namespace SimpleScroll
             _isResized = true;
 
             if (_scrollbar == null) return;
-            if (float.IsInfinity(scrollSize) || scrollSize < ViewportSize)
+            if (float.IsInfinity(scrollSize) || scrollSize <= 0)
             {
                 _scrollbar.gameObject.SetActive(false);
             }
             else
             {
-                var size = Mathf.Clamp01(ViewportSize /scrollSize);
-                _scrollbar.gameObject.SetActive(size < 1f);
+                _scrollbar.gameObject.SetActive(true);
+                var size = 1f - Mathf.Clamp01(scrollSize / ViewportSize);
                 _scrollbar.size = Mathf.Max(size, 0.05f);
             }
         }
@@ -120,6 +123,7 @@ namespace SimpleScroll
                 _isDirty = false;
             }
 
+            if (_scroller == null) return;
             var scrollDelta = _scroller.Update(targetPosition);
             UpdateScrollbar();
             Reposition(scrollDelta, _isResized);
@@ -130,27 +134,27 @@ namespace SimpleScroll
         {
             if (DataSource == null || _pointerId != int.MinValue) return;
             _pointerId = e.pointerId;
-            _scroller.OnBeginDrag(e);
+            _scroller?.OnBeginDrag(e);
         }
 
         void IDragHandler.OnDrag(PointerEventData e)
         {
             if (DataSource == null || _pointerId != e.pointerId || !IsDraggable) return;
-            _scroller.OnDrag(e);
+            _scroller?.OnDrag(e);
         }
 
         void IEndDragHandler.OnEndDrag(PointerEventData e)
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            var targetPosition = _scroller.OnEndDrag(e);
+            var targetPosition = _scroller != null ? _scroller.OnEndDrag(e) : 0f;
             OnDrag(targetPosition);
         }
 
         void IScrollHandler.OnScroll(PointerEventData e)
         {
-            if (DataSource == null && !IsScrollable) return;
-            _scroller.Stop();
+            if (DataSource == null || !IsScrollable) return;
+            _scroller?.Stop();
             OnScroll(e.scrollDelta.GetAxialValue());
         }
 
@@ -162,6 +166,7 @@ namespace SimpleScroll
 
         public void StopScroll()
         {
+            if (_scroller == null) return;
             var velocity = _scroller.Velocity;
             _scroller.Stop();
             OnStopScroll(velocity);
@@ -169,7 +174,7 @@ namespace SimpleScroll
 
         protected float ClampPosition(float position)
         {
-            return Scroller.ClampPosition(position);
+            return Scroller != null ? Scroller.ClampPosition(position) : position;
         }
 
         protected void SetDirty()
@@ -179,6 +184,7 @@ namespace SimpleScroll
 
         private void SetAxisPivots()
         {
+            if (_scroller == null) return;
             var axis = _scroller.Axis;
             if (_viewport != null)
             {
@@ -196,7 +202,7 @@ namespace SimpleScroll
 
         protected override void OnValidate()
         {
-            if (IsDestroyed()) return;
+            if (IsDestroyed() || _scroller == null) return;
             _tracker.Clear();
             var axis = _scroller.Axis;
             var properties = axis == 0
