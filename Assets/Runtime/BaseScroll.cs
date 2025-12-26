@@ -30,16 +30,19 @@ namespace SimpleScroll
         public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
+        public float ScrollPosition => _scroller.ScrollPosition;
+        public float NormalizedPosition => _scroller.NormalizedPosition;
 
         protected override void OnEnable()
         {
-            SetDirty();
+            _pointerId = int.MinValue;
             if (_viewport == null)
             {
                 _viewport = GetComponent<RectTransform>();
             }
 
             SetAxisPivots();
+            SetDirty();
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
         }
@@ -147,7 +150,7 @@ namespace SimpleScroll
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            var targetPosition = _scroller != null ? _scroller.OnEndDrag(e) : 0f;
+            var targetPosition = _scroller?.OnEndDrag(e) ?? 0f;
             OnDrag(targetPosition);
         }
 
@@ -174,7 +177,7 @@ namespace SimpleScroll
 
         protected float ClampPosition(float position)
         {
-            return Scroller != null ? Scroller.ClampPosition(position) : position;
+            return Scroller?.ClampPosition(position) ?? position;
         }
 
         protected void SetDirty()

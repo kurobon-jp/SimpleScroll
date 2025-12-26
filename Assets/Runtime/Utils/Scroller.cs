@@ -96,9 +96,7 @@ namespace SimpleScroll
 
                 ScrollPosition = Mathf.Clamp(_scrollPosition, min, max);
             }
-
-            _velocity = 0f;
-            _status = ScrollStatus.Idle;
+            
         }
 
         internal void OnBeginDrag(PointerEventData e)
