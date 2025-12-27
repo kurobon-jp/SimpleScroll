@@ -5,11 +5,7 @@ using UnityEngine.EventSystems;
 namespace SimpleScroll
 {
     [Serializable]
-#if UNITY_EDITOR
-    public class Scroller
-#else
     internal class Scroller
-#endif
     {
         private enum ScrollStatus
         {
