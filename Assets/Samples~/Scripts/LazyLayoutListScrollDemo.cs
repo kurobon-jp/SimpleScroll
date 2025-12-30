@@ -48,6 +48,7 @@ namespace SimpleScroll.Samples
             }
 
             _listScroll.SetDataSource(_dataSource);
+            _listScroll.Refresh();
         }
 
     }
