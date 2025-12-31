@@ -30,8 +30,9 @@ namespace SimpleScroll
         public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
-        public float ScrollPosition => _scroller.ScrollPosition;
-        public float NormalizedPosition => _scroller.NormalizedPosition;
+        public bool IsDragging => Scroller?.IsDragging ?? false;
+        public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
+        public float NormalizedPosition => Scroller?.NormalizedPosition ?? 0f;
 
         protected override void OnEnable()
         {
