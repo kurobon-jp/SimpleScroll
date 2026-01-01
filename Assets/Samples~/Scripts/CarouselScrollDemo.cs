@@ -19,7 +19,7 @@ namespace SimpleScroll.Samples
             };
             _carouselScroll.OnReposition += (cell, i, f) =>
             {
-                var scale = Mathf.Lerp(1f, 0.75f, f);
+                var scale = Mathf.Lerp(1f, 0.75f, Mathf.Abs(f));
                 cell.localScale = new Vector3(scale, scale, 1f);
             };
 
