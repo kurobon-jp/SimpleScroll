@@ -159,7 +159,7 @@ namespace SimpleScroll
                     cell.SetAnchoredPosition(pos, axis);
                 }
 
-                OnReposition?.Invoke(cell, i, Mathf.Abs(pos + scrollPosition) / ViewportHalf);
+                OnReposition?.Invoke(cell, i, (pos + scrollPosition) / ViewportHalf);
             }
 
             if (isResized)
