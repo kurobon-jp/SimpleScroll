@@ -21,7 +21,12 @@ namespace SimpleScroll
 
         public T this[int index]
         {
-            get => _data[index];
+            get
+            {
+                ValidateIndex(index);
+                return _data[index];
+            }
+
             set
             {
                 ValidateIndex(index);
