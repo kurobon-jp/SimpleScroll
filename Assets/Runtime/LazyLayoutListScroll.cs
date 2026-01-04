@@ -222,9 +222,9 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public override void Refresh(float normalizedPosition)
+        public override void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
-            base.Refresh(normalizedPosition);
+            base.Refresh(normalizedPosition, isRefreshVisibleCells);
             _normalizedPosition = normalizedPosition;
         }
 

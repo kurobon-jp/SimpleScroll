@@ -104,15 +104,19 @@ namespace SimpleScroll
             CellViewPool.SetDataSource(dataSource);
         }
 
-        public void Refresh()
+        public void Refresh(bool isRefreshVisibleCells = true)
         {
-            CellViewPool.ReleaseAll();
+            if (isRefreshVisibleCells)
+            {
+                CellViewPool.ReleaseAll();
+            }
+
             Resize();
         }
 
-        public virtual void Refresh(float normalizedPosition)
+        public virtual void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
-            Refresh();
+            Refresh(isRefreshVisibleCells);
             OnScrollbarValueChanged(normalizedPosition);
         }
 
