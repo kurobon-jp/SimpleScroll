@@ -42,7 +42,7 @@ namespace SimpleScroll
                 _viewport = GetComponent<RectTransform>();
             }
 
-            SetAxisPivots();
+            SetAxisPivotAndDeltaSize();
             SetDirty();
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
@@ -190,7 +190,7 @@ namespace SimpleScroll
             _isDirty = true;
         }
 
-        private void SetAxisPivots()
+        private void SetAxisPivotAndDeltaSize()
         {
             if (_scroller == null) return;
             var axis = _scroller.Axis;
@@ -201,7 +201,7 @@ namespace SimpleScroll
 
             if (_content != null)
             {
-                _content.SetPivot(0.5f, axis);
+                _content.SetDeltaSize(0f, axis);
             }
         }
 
@@ -213,20 +213,23 @@ namespace SimpleScroll
             if (IsDestroyed() || _scroller == null) return;
             _tracker.Clear();
             var axis = _scroller.Axis;
-            var properties = axis == 0
+            var pivot = axis == 0
                 ? DrivenTransformProperties.PivotX
                 : DrivenTransformProperties.PivotY;
+            var deltaSize = axis == 0
+                ? DrivenTransformProperties.SizeDeltaX
+                : DrivenTransformProperties.SizeDeltaY;
             if (_viewport != null)
             {
-                _tracker.Add(this, _viewport, properties);
+                _tracker.Add(this, _viewport, pivot);
             }
 
             if (_content != null)
             {
-                _tracker.Add(this, _content, properties);
+                _tracker.Add(this, _content, deltaSize);
             }
 
-            EditorApplication.delayCall += SetAxisPivots;
+            EditorApplication.delayCall += SetAxisPivotAndDeltaSize;
             SetDirty();
         }
 #endif

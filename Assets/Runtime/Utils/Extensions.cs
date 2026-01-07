@@ -16,6 +16,13 @@ namespace SimpleScroll
             self.pivot = pivot;
         }
         
+        internal static void SetDeltaSize(this RectTransform self, float value, int axis)
+        {
+            var sizeDelta = self.sizeDelta;
+            sizeDelta[axis] = value;
+            self.sizeDelta = sizeDelta;
+        }
+        
         internal static void SetAnchor(this RectTransform self, float value, int axis)
         {
             var anchorMin = self.anchorMin;

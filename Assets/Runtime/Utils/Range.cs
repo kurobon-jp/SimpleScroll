@@ -4,6 +4,8 @@ namespace SimpleScroll
     {
         public readonly int Start;
         public readonly int End;
+        
+        public int Length => End - Start + 1;
 
         public Range(int start = 0, int end = 0)
         {
