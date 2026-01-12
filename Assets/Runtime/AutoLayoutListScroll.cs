@@ -124,7 +124,6 @@ namespace SimpleScroll
                 else
                 {
                     cell = CellViewPool.Get(i, Content);
-                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
@@ -148,7 +147,7 @@ namespace SimpleScroll
                 var offset = _offsets[i];
                 var size = _sizes[i];
                 var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
-                cell.SetAnchoredPosition(pos, axis);
+                cell.SetCellPosition(pos, axis);
 
                 fillSize += size + _space;
                 if (end != i || !(fillSize < ViewportSize)) continue;
