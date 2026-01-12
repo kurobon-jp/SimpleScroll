@@ -171,8 +171,6 @@ namespace SimpleScroll
             else
             {
                 cell = CellViewPool.Get(index, Content);
-                cell.SetPivot(0.5f, axis);
-                cell.SetAnchor(0.5f, axis);
                 var go = cell.gameObject;
                 go.SetActive(true);
                 DataSource.SetData(index, go);
@@ -202,7 +200,7 @@ namespace SimpleScroll
                 pos -= sizeDelta;
             }
 
-            cell.SetAnchoredPosition(pos, axis);
+            cell.SetCellPosition(pos, axis);
             return sizeDelta;
         }
 

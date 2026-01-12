@@ -146,7 +146,6 @@ namespace SimpleScroll
                 if (!CellViewPool.TryGetVisibleCell(i, out var cell))
                 {
                     cell = CellViewPool.Get(i, Content);
-                    cell.SetPivot(0.5f, axis);
                     var go = cell.gameObject;
                     go.SetActive(true);
                     DataSource.SetData(i, go);
@@ -156,7 +155,7 @@ namespace SimpleScroll
                 var pos = i * CellStride * -direction;
                 if (isResized || needReposition)
                 {
-                    cell.SetAnchoredPosition(pos, axis);
+                    cell.SetCellPosition(pos, axis);
                 }
 
                 OnReposition?.Invoke(cell, i, (pos + scrollPosition) / ViewportHalf);

@@ -106,15 +106,14 @@ namespace SimpleScroll
                     else
                     {
                         cell = CellViewPool.Get(i, Content);
-                        cell.pivot = new Vector2(0.5f, 0.5f);
                         var go = cell.gameObject;
                         go.SetActive(true);
                         DataSource.SetData(i, go);
                     }
 
                     var colPos = colStride * col - colStride * (_column - 1) * 0.5f;
-                    cell.anchoredPosition =
-                        axis == 0 ? new Vector2(rowPos, colPos * direction) : new Vector2(colPos, rowPos);
+                    cell.SetCellPosition(
+                        axis == 0 ? new Vector2(rowPos, colPos * direction) : new Vector2(colPos, rowPos));
                 }
             }
         }
