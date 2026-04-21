@@ -36,8 +36,6 @@ namespace SimpleScroll
             }
         }
 
-        public Range VisibleRange { get; private set; } = new(-1);
-
         protected override float GetScrollSize()
         {
             var contentSize = DataSource.GetTotalContentSize(_contentPadding, _defaultCellSize, _space);
@@ -60,14 +58,14 @@ namespace SimpleScroll
         {
         }
 
-        protected override void Reposition(float scrollDelta, bool isResized)
+        protected override Range Reposition(float scrollDelta, bool isResized)
         {
+            var visibleRange = Range.Empty;
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
-                VisibleRange = new Range(-1);
-                return;
+                return visibleRange;
             }
 
             var axis = Scroller.Axis;
@@ -147,7 +145,7 @@ namespace SimpleScroll
                 visibleEnd = DataSource.FindStartIndex(scrollPosition + ViewportSize);
             }
 
-            VisibleRange = new Range(visibleStart, visibleEnd);
+            visibleRange = new Range(visibleStart, visibleEnd);
             if (!float.IsNaN(_normalizedPosition))
             {
                 OnScrollbarValueChanged(_normalizedPosition);
@@ -158,6 +156,7 @@ namespace SimpleScroll
 
             _targetPosition -= sizeDelta;
             Scroller.ScrollPosition -= sizeDelta;
+            return visibleRange;
         }
 
         private float LayoutCell(int index, bool isResized, int axis, int direction, float sizeDelta,
@@ -182,7 +181,7 @@ namespace SimpleScroll
                 LayoutRebuilder.ForceRebuildLayoutImmediate(cell);
             }
 
-            var actualSize = cell.rect.size[axis];
+            var actualSize = Mathf.Max(0, cell.rect.size[axis]);
             var size = DataSource.GetCellViewSize(index);
             if (!Mathf.Approximately(size, actualSize))
             {

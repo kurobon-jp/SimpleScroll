@@ -1,6 +1,7 @@
 ﻿#if UNITY_EDITOR
 using UnityEditor;
 #endif
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -27,12 +28,15 @@ namespace SimpleScroll
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
         protected float ViewportHalf { get; private set; }
+        public Range VisibleRange { get; private set; } = Range.Empty;
         public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
         public bool IsDragging => Scroller?.IsDragging ?? false;
         public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
         public float NormalizedPosition => Scroller?.NormalizedPosition ?? 0f;
+        
+        public event Action<Range> OnVisibleRangeChanged; 
 
         protected override void OnEnable()
         {
@@ -134,8 +138,13 @@ namespace SimpleScroll
             if (_scroller == null) return;
             var scrollDelta = _scroller.Update(targetPosition);
             UpdateScrollbar();
-            Reposition(scrollDelta, _isResized);
+            var visibleRange = Reposition(scrollDelta, _isResized);
             _isResized = false;
+            if (!VisibleRange.Equals(visibleRange))
+            {
+                VisibleRange = visibleRange;
+                OnVisibleRangeChanged?.Invoke(visibleRange);
+            }
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
@@ -167,7 +176,7 @@ namespace SimpleScroll
         }
 
         protected abstract float GetScrollSize();
-        protected abstract void Reposition(float scrollDelta, bool isResized);
+        protected abstract Range Reposition(float scrollDelta, bool isResized);
         protected abstract void OnDrag(float targetPosition);
         protected abstract void OnScroll(float delta);
         protected abstract void OnStopScroll(float velocity);

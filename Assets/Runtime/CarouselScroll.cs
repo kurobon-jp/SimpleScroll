@@ -52,8 +52,6 @@ namespace SimpleScroll
             }
         }
 
-        public Range VisibleRange { get; private set; } = new(-1);
-
         public event Action<int> OnSelected;
         public event Action<RectTransform, int, float> OnReposition;
 
@@ -111,26 +109,28 @@ namespace SimpleScroll
             SetPositionIndex(positionIndex);
         }
 
-        protected override void Reposition(float scrollDelta, bool isResized)
+        protected override Range Reposition(float scrollDelta, bool isResized)
         {
+            var visibleRange = Range.Empty;
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
-                VisibleRange = new Range(-1);
                 UpdateIndicator(0);
-                return;
+                return visibleRange;
             }
 
             var axis = Scroller.Axis;
             var direction = Scroller.Direction;
             var scrollPosition = Scroller.ScrollPosition;
-            var start = Mathf.FloorToInt((scrollPosition * direction - ViewportHalf) / CellStride);
-            var end = start + _cellCount;
+            var stride = CellStride;
+            var offset = (scrollPosition -  stride * 0.5f) * direction;
+            var start = Mathf.FloorToInt((offset - ViewportHalf) / stride);
+            var end = Mathf.FloorToInt((offset + ViewportHalf) / stride);
             if (!_loop)
             {
                 start = Mathf.Max(0, start);
-                end = Mathf.Min(start + _cellCount, dataCount - 1);
+                end = Mathf.Min(end, dataCount - 1);
                 if (isResized)
                 {
                     SetPositionIndex(_positionIndex, false);
@@ -138,7 +138,7 @@ namespace SimpleScroll
             }
 
             CellViewPool.ReleaseOutOfRange(start, end);
-            VisibleRange = new Range(start, end);
+            visibleRange = new Range(start, end);
             Content.SetLocalPosition(scrollPosition, axis);
             for (var i = start; i <= end; i++)
             {
@@ -152,7 +152,7 @@ namespace SimpleScroll
                     needReposition = true;
                 }
 
-                var pos = i * CellStride * -direction;
+                var pos = i * stride * -direction;
                 if (isResized || needReposition)
                 {
                     cell.SetCellPosition(pos, axis);
@@ -165,6 +165,8 @@ namespace SimpleScroll
             {
                 UpdateIndicator(_positionIndex);
             }
+
+            return visibleRange;
         }
 
         private void LateUpdate()

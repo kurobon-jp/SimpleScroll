@@ -42,8 +42,6 @@ namespace SimpleScroll
                 SetDirty();
             }
         }
-        
-        public Range VisibleRange { get; private set; } = new(-1);
 
         protected override float GetScrollSize()
         {
@@ -68,14 +66,14 @@ namespace SimpleScroll
         {
         }
 
-        protected override void Reposition(float scrollDelta, bool isResized)
+        protected override Range Reposition(float scrollDelta, bool isResized)
         {
+            var visibleRange = Range.Empty;
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
-                VisibleRange = new Range(-1);
-                return;
+                return visibleRange;
             }
 
             var axis = Scroller.Axis;
@@ -89,16 +87,16 @@ namespace SimpleScroll
             var startRow = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / rowStride));
             var endRow = Mathf.FloorToInt((scrollPosition * direction + ViewportSize - 1) / rowStride);
             var start = startRow * _column;
-            var end = Mathf.Min((endRow + 1) * _column, dataCount - 1);
+            var end = Mathf.Min((endRow + 1) * _column - 1, dataCount - 1);
             CellViewPool.ReleaseOutOfRange(start, end);
-            VisibleRange = new Range(start, end);
+            visibleRange = new Range(start, end);
             for (var row = startRow; row <= endRow; row++)
             {
                 var rowPos = (row * rowStride - ViewportHalf + _cellSize[axis] * 0.5f + padding) * -direction;
                 for (var col = 0; col < _column; col++)
                 {
                     var i = row * _column + col;
-                    if (i >= dataCount) return;
+                    if (i >= dataCount) break;
                     if (CellViewPool.TryGetVisibleCell(i, out var cell))
                     {
                         if (!isResized) continue;
@@ -116,6 +114,8 @@ namespace SimpleScroll
                         axis == 0 ? new Vector2(rowPos, colPos * direction) : new Vector2(colPos, rowPos));
                 }
             }
+
+            return visibleRange;
         }
 
         private void LateUpdate()

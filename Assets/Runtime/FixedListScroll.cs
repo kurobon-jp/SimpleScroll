@@ -32,8 +32,6 @@ namespace SimpleScroll
             }
         }
 
-        public Range VisibleRange { get; private set; } = new(-1);
-
         protected override float GetScrollSize()
         {
             var dataCount = DataSource.GetDataCount();
@@ -54,14 +52,14 @@ namespace SimpleScroll
         {
         }
 
-        protected override void Reposition(float scrollDelta, bool isResized)
+        protected override Range Reposition(float scrollDelta, bool isResized)
         {
+            var visibleRange = Range.Empty;
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0)
             {
                 CellViewPool.ReleaseAll();
-                VisibleRange = new Range(-1);
-                return;
+                return visibleRange;
             }
 
             var axis = Scroller.Axis;
@@ -75,7 +73,7 @@ namespace SimpleScroll
             var end = Mathf.Clamp(Mathf.FloorToInt((scrollPosition * direction + ViewportSize) / stride), start,
                 dataCount - 1);
             CellViewPool.ReleaseOutOfRange(start, end);
-            VisibleRange = new Range(start, end);
+            visibleRange = new Range(start, end);
             for (var i = start; i <= end; i++)
             {
                 if (CellViewPool.TryGetVisibleCell(i, out var cell))
@@ -93,6 +91,8 @@ namespace SimpleScroll
                 var pos = (i * CellStride - ViewportHalf + _cellSize * 0.5f + padding) * -direction;
                 cell.SetCellPosition(pos, axis);
             }
+
+            return visibleRange;
         }
 
         private void LateUpdate()
