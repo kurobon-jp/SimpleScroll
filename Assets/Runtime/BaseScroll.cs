@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace SimpleScroll
 {
-    [RequireComponent(typeof(RectTransform), typeof(Graphic))]
+    [RequireComponent(typeof(RectTransform))]
     public abstract class BaseScroll<TDataSource> : UIBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
         IScrollHandler where TDataSource : IDataSource
     {
@@ -35,8 +35,8 @@ namespace SimpleScroll
         public bool IsDragging => Scroller?.IsDragging ?? false;
         public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
         public float NormalizedPosition => Scroller?.NormalizedPosition ?? 0f;
-        
-        public event Action<Range> OnVisibleRangeChanged; 
+
+        public event Action<Range> OnVisibleRangeChanged;
 
         protected override void OnEnable()
         {
@@ -130,11 +130,11 @@ namespace SimpleScroll
             var dataCount = DataSource.GetDataCount();
             if (dataCount != _dataCount || _isDirty)
             {
-                Refresh();
-                _dataCount = dataCount;
-                _isDirty = false;
+                Refresh(_isDirty);
             }
 
+            _dataCount = dataCount;
+            _isDirty = false;
             if (_scroller == null) return;
             var scrollDelta = _scroller.Update(targetPosition);
             UpdateScrollbar();
