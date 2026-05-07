@@ -8,7 +8,7 @@ namespace SimpleScroll
     public interface ILazyLayoutDataSource : ISizedDataSource
     {
         float GetTotalContentSize(ContentPadding padding, float defaultSize, float space);
-        int FindStartIndex(float position);
+        int FindDataIndex(float position);
         float GetCellViewOffset(int index);
         void SetCellViewSize(int index, float size);
     }
@@ -73,7 +73,7 @@ namespace SimpleScroll
             return offset + padding.End;
         }
 
-        public int FindStartIndex(float position)
+        public int FindDataIndex(float position)
         {
             // EnsureInternalListsInitialized(GetDataCount());
             var index = _offsets.BinarySearch(position);

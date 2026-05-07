@@ -169,6 +169,10 @@ namespace SimpleScroll
             return visibleRange;
         }
 
+        protected override void OnNormalizePositionChanged(float _)
+        {
+        }
+        
         private void LateUpdate()
         {
             if (Scroller.IsIdling)
@@ -182,7 +186,7 @@ namespace SimpleScroll
         public void Next() => SetPositionIndex(_positionIndex + 1);
         public void Prev() => SetPositionIndex(_positionIndex - 1);
 
-        public void SetPositionIndex(int index, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, bool smooth = true)
         {
             if (DataSource == null) return;
             var count = DataSource.GetDataCount();
@@ -190,15 +194,15 @@ namespace SimpleScroll
             var prev = _positionIndex;
             if (!_loop)
             {
-                index = Mathf.Clamp(index, 0, count - 1);
+                positionIndex = Mathf.Clamp(positionIndex, 0, count - 1);
             }
 
-            if (smooth && prev == index) return;
-            _positionIndex = index;
-            UpdateIndicator(DataSource.GetDataIndex(index));
-            OnSelected?.Invoke(index);
+            if (smooth && prev == positionIndex) return;
+            _positionIndex = positionIndex;
+            UpdateIndicator(DataSource.GetDataIndex(positionIndex));
+            OnSelected?.Invoke(positionIndex);
             if (!smooth)
-                Scroller.ScrollPosition = -index * CellStride;
+                Scroller.ScrollPosition = -positionIndex * CellStride;
         }
 
         private void UpdateIndicator(int index)

@@ -74,7 +74,7 @@ namespace SimpleScroll
 
             scrollPosition *= direction;
 
-            var start = DataSource.FindStartIndex(scrollPosition);
+            var start = DataSource.FindDataIndex(scrollPosition);
             var end = start;
             var offset = DataSource.GetCellViewOffset(start);
             var viewportSize = ViewportSize + scrollPosition - offset;
@@ -141,14 +141,14 @@ namespace SimpleScroll
             scrollPosition -= sizeDelta;
             if (sizeDelta != 0f)
             {
-                visibleStart = DataSource.FindStartIndex(scrollPosition);
-                visibleEnd = DataSource.FindStartIndex(scrollPosition + ViewportSize);
+                visibleStart = DataSource.FindDataIndex(scrollPosition);
+                visibleEnd = DataSource.FindDataIndex(scrollPosition + ViewportSize);
             }
 
             visibleRange = new Range(visibleStart, visibleEnd);
             if (!float.IsNaN(_normalizedPosition))
             {
-                OnScrollbarValueChanged(_normalizedPosition);
+                Scroller.NormalizedPosition = _normalizedPosition;
                 _normalizedPosition = float.NaN;
             }
 
@@ -160,7 +160,7 @@ namespace SimpleScroll
         }
 
         private float LayoutCell(int index, bool isResized, int axis, int direction, float sizeDelta,
-            bool isDeltaOffset = false)
+            bool hasDeltaOffset = false)
         {
             var needRebuild = false;
             if (CellViewPool.TryGetVisibleCell(index, out var cell))
@@ -194,7 +194,7 @@ namespace SimpleScroll
 
             var offset = DataSource.GetCellViewOffset(index);
             var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
-            if (isDeltaOffset)
+            if (hasDeltaOffset)
             {
                 pos -= sizeDelta;
             }
@@ -213,9 +213,8 @@ namespace SimpleScroll
             UpdatePosition(_targetPosition);
         }
 
-        protected override void OnScrollbarValueChanged(float value)
+        protected override void OnNormalizePositionChanged(float _)
         {
-            base.OnScrollbarValueChanged(value);
             _targetPosition = Scroller.ScrollPosition;
         }
 
@@ -230,13 +229,13 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition = scrollPosition;
         }
 
-        public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
             Scroller.Stop();
             var dataCount = DataSource.GetDataCount();
-            index = Mathf.Clamp(index, 0, dataCount - 1);
-            _targetIndex = index;
+            positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
+            _targetIndex = positionIndex;
             _targetAnchor = anchor;
             _targetSmooth = smooth;
         }

@@ -33,6 +33,7 @@ namespace SimpleScroll
         public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
         public bool IsDragging => Scroller?.IsDragging ?? false;
+        public bool IsScrolling => Scroller?.IsScrolling ?? false;
         public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
         public float NormalizedPosition => Scroller?.NormalizedPosition ?? 0f;
 
@@ -66,11 +67,11 @@ namespace SimpleScroll
             SetDirty();
         }
 
-        protected virtual void OnScrollbarValueChanged(float normalizedPosition)
+        private void OnScrollbarValueChanged(float normalizedPosition)
         {
             if (_scroller == null) return;
-            _scroller.Stop();
-            _scroller.NormalizedPosition = normalizedPosition;
+            _scroller.OnScroll();
+            SetNormalizedPosition(normalizedPosition);
         }
 
         private void UpdateScrollbar()
@@ -121,7 +122,7 @@ namespace SimpleScroll
         public virtual void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
             Refresh(isRefreshVisibleCells);
-            OnScrollbarValueChanged(normalizedPosition);
+            SetNormalizedPosition(normalizedPosition);
         }
 
         protected void UpdatePosition(float targetPosition)
@@ -131,10 +132,10 @@ namespace SimpleScroll
             if (dataCount != _dataCount || _isDirty)
             {
                 Refresh(_isDirty);
+                _dataCount = dataCount;
+                _isDirty = false;
             }
 
-            _dataCount = dataCount;
-            _isDirty = false;
             if (_scroller == null) return;
             var scrollDelta = _scroller.Update(targetPosition);
             UpdateScrollbar();
@@ -145,6 +146,17 @@ namespace SimpleScroll
                 VisibleRange = visibleRange;
                 OnVisibleRangeChanged?.Invoke(visibleRange);
             }
+
+            if (_scroller.IsScrolling)
+            {
+                _scroller.Stop();
+            }
+        }
+
+        private void SetNormalizedPosition(float normalizedPosition)
+        {
+            _scroller.NormalizedPosition = normalizedPosition;
+            OnNormalizePositionChanged(_scroller.NormalizedPosition);
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
@@ -171,7 +183,7 @@ namespace SimpleScroll
         void IScrollHandler.OnScroll(PointerEventData e)
         {
             if (DataSource == null || !IsScrollable) return;
-            _scroller?.Stop();
+            _scroller?.OnScroll();
             OnScroll(e.scrollDelta.GetAxialValue());
         }
 
@@ -180,6 +192,7 @@ namespace SimpleScroll
         protected abstract void OnDrag(float targetPosition);
         protected abstract void OnScroll(float delta);
         protected abstract void OnStopScroll(float velocity);
+        protected abstract void OnNormalizePositionChanged(float normalizedPosition);
 
         public void StopScroll()
         {

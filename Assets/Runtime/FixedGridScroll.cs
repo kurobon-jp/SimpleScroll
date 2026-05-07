@@ -128,22 +128,21 @@ namespace SimpleScroll
             UpdatePosition(_targetPosition);
         }
 
-        protected override void OnScrollbarValueChanged(float value)
+        protected override void OnNormalizePositionChanged(float _)
         {
-            base.OnScrollbarValueChanged(value);
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetPositionIndex(int index, float pivot = 0.5f, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, float pivot = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
             var axis = Scroller.Axis;
             var direction = Scroller.Direction;
             var rowStride = CellStride[axis];
-            index = Mathf.Clamp(index, 0, dataCount - 1) / _column;
+            positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1) / _column;
             var offset = (ViewportSize - rowStride) * (Mathf.Clamp01(pivot) * direction + 0.5f);
-            var position = rowStride * index * direction + ViewportHalf - rowStride * 0.5f - offset;
+            var position = rowStride * positionIndex * direction + ViewportHalf - rowStride * 0.5f - offset;
             _targetPosition = ClampPosition(position);
             if (!smooth)
             {

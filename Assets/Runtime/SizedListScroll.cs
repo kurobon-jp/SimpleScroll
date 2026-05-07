@@ -133,20 +133,19 @@ namespace SimpleScroll
             UpdatePosition(_targetPosition);
         }
 
-        protected override void OnScrollbarValueChanged(float value)
+        protected override void OnNormalizePositionChanged(float _)
         {
-            base.OnScrollbarValueChanged(value);
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetPositionIndex(int index, float anchor = 0.5f, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
             Scroller.Stop();
             var dataCount = DataSource.GetDataCount();
-            index = Mathf.Clamp(index, 0, dataCount - 1);
-            var size = DataSource.GetCellViewSize(index);
-            var position = (_offsets[index] - (ViewportSize - size) * anchor) * Scroller.Direction;
+            positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
+            var size = DataSource.GetCellViewSize(positionIndex);
+            var position = (_offsets[positionIndex] - (ViewportSize - size) * anchor) * Scroller.Direction;
             _targetPosition = ClampPosition(position);
             if (!smooth)
             {

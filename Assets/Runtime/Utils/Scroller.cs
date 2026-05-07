@@ -11,7 +11,8 @@ namespace SimpleScroll
         {
             Idle,
             Dragging,
-            Scrolling
+            Scrolling,
+            Coasting
         }
 
         internal const float VelocityThreshold = 10f;
@@ -80,19 +81,16 @@ namespace SimpleScroll
         internal void Initialize(float scrollSize = float.PositiveInfinity)
         {
             _scrollSize = Mathf.Max(0f, scrollSize);
-            if (!float.IsInfinity(scrollSize))
+            if (float.IsInfinity(scrollSize)) return;
+            var min = 0f;
+            var max = scrollSize;
+            if (Axis == 0)
             {
-                var min = 0f;
-                var max = scrollSize;
-                if (Axis == 0)
-                {
-                    min = -scrollSize;
-                    max = 0;
-                }
-
-                ScrollPosition = Mathf.Clamp(_scrollPosition, min, max);
+                min = -scrollSize;
+                max = 0;
             }
-            
+
+            ScrollPosition = Mathf.Clamp(_scrollPosition, min, max);
         }
 
         internal void OnBeginDrag(PointerEventData e)
@@ -128,9 +126,15 @@ namespace SimpleScroll
                 return ScrollPosition;
             }
 
-            _status = ScrollStatus.Scrolling;
+            _status = ScrollStatus.Coasting;
             _velocity = Mathf.Clamp(_velocity, -_maxVelocity, _maxVelocity);
             return ScrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
+        }
+
+        internal void OnScroll()
+        {
+            _status = ScrollStatus.Scrolling;
+            _velocity = 0f;
         }
 
         internal float Update(float targetPosition)
@@ -155,7 +159,7 @@ namespace SimpleScroll
 
             var speed = _velocity;
             var scrollPos = ScrollPosition;
-            if (_status == ScrollStatus.Scrolling)
+            if (_status == ScrollStatus.Coasting)
             {
                 var absSpeed = Mathf.Abs(speed);
                 var smoothTime = Mathf.Max(0.05f, absSpeed / _deceleration);
