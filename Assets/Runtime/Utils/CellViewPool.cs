@@ -12,14 +12,20 @@ namespace SimpleScroll
 
         internal void SetDataSource(IDataSource dataSource)
         {
-            ReleaseAll();
+            if (_dataSource == dataSource)
+            {
+                ReleaseAll();
+                return;
+            }
+
+            Clear();
             _dataSource = dataSource;
         }
 
         private bool IsVisible(int index)
         {
             return _visibleCells.ContainsKey(index) &&
-                   _visibleCellTypes.TryGetValue(index, out var type) && 
+                   _visibleCellTypes.TryGetValue(index, out var type) &&
                    type == _dataSource.GetCellViewType(index);
         }
 
