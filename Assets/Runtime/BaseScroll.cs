@@ -30,8 +30,8 @@ namespace SimpleScroll
         protected float ViewportHalf { get; private set; }
         public Range VisibleRange { get; private set; } = Range.Empty;
         public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
-        public bool IsScrollable { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
+        public bool IsScrollable { get; set; } = true;
         public bool IsDragging => Scroller?.IsDragging ?? false;
         public bool IsScrolling => Scroller?.IsScrolling ?? false;
         public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
