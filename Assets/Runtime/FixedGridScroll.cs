@@ -13,12 +13,12 @@ namespace SimpleScroll
 
         private Vector2 CellStride => _cellSize + _space;
 
-        public ContentPadding ContentPadding
+        public Vector2 CellSize
         {
-            get => _contentPadding;
+            get => _cellSize;
             set
             {
-                _contentPadding = value;
+                _cellSize = value;
                 SetDirty();
             }
         }
@@ -39,6 +39,16 @@ namespace SimpleScroll
             set
             {
                 _column = value;
+                SetDirty();
+            }
+        }
+
+        public ContentPadding ContentPadding
+        {
+            get => _contentPadding;
+            set
+            {
+                _contentPadding = value;
                 SetDirty();
             }
         }

@@ -12,12 +12,12 @@ namespace SimpleScroll
 
         private float CellStride => _cellSize + _space;
 
-        public ContentPadding ContentPadding
+        public float CellSize
         {
-            get => _contentPadding;
+            get => _cellSize;
             set
             {
-                _contentPadding = value;
+                _cellSize = value;
                 SetDirty();
             }
         }
@@ -28,6 +28,16 @@ namespace SimpleScroll
             set
             {
                 _space = value;
+                SetDirty();
+            }
+        }
+
+        public ContentPadding ContentPadding
+        {
+            get => _contentPadding;
+            set
+            {
+                _contentPadding = value;
                 SetDirty();
             }
         }
