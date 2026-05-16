@@ -22,16 +22,11 @@ namespace SimpleScroll
             _dataSource = dataSource;
         }
 
-        private bool IsVisible(int index)
-        {
-            return _visibleCells.ContainsKey(index) &&
-                   _visibleCellTypes.TryGetValue(index, out var type) &&
-                   type == _dataSource.GetCellViewType(index);
-        }
-
         internal bool TryGetVisibleCell(int index, out RectTransform cellView)
         {
-            if (IsVisible(index) && _visibleCells.TryGetValue(index, out cellView)) return true;
+            if (_visibleCells.TryGetValue(index, out cellView) &&
+                _visibleCellTypes.TryGetValue(index, out var type) &&
+                type == _dataSource.GetCellViewType(index)) return true;
             cellView = null;
             return false;
         }
