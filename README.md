@@ -44,7 +44,7 @@ Git Path (Unity Package Manager)
 
 ---
 
-### 🪄 **AutoLayoutListScroll**
+### 🪄 **~~AutoLayoutListScroll~~** -> **LazyLayoutListScroll**
 - Single-column, supports multiple cell types
 - Automatically uses RectTransform sizes
 - Easy to set up, but **has some overhead**
