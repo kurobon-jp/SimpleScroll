@@ -95,7 +95,7 @@ namespace SimpleScroll
 
         internal void OnBeginDrag(PointerEventData e)
         {
-            _dragTarget = e.pointerDrag?.GetComponent<RectTransform>();
+            _dragTarget = e.pointerDrag?.transform as RectTransform;
             if (_dragTarget == null) return;
             _status = ScrollStatus.Dragging;
             _velocity = 0f;

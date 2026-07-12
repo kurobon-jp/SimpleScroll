@@ -44,7 +44,7 @@ namespace SimpleScroll
             _pointerId = int.MinValue;
             if (_viewport == null)
             {
-                _viewport = GetComponent<RectTransform>();
+                _viewport = transform as RectTransform;
             }
 
             SetAxisPivotAndDeltaSize();
@@ -192,7 +192,10 @@ namespace SimpleScroll
         protected abstract void OnDrag(float targetPosition);
         protected abstract void OnScroll(float delta);
         protected abstract void OnStopScroll(float velocity);
-        protected abstract void OnNormalizePositionChanged(float normalizedPosition);
+
+        protected virtual void OnNormalizePositionChanged(float normalizedPosition)
+        {
+        }
 
         public void StopScroll()
         {
