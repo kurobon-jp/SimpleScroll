@@ -24,6 +24,7 @@ namespace SimpleScroll.Samples
             };
 
             _carouselScroll.SetDataSource(this);
+            _carouselScroll.SetPositionIndex(0, false);
             _carouselScroll.Refresh();
         }
 

@@ -53,7 +53,7 @@ namespace SimpleScroll
             {
                 var prefab = _dataSource.GetCellView(index);
                 var go = Object.Instantiate(prefab, parent, false);
-                cellView = go.GetComponent<RectTransform>();
+                cellView = go.transform as RectTransform;
             }
 
             _visibleCells.Add(index, cellView);
