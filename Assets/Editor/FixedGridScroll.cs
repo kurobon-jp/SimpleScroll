@@ -6,22 +6,13 @@ using UnityEngine.UIElements;
 namespace SimpleScroll.Editor
 {
     [CustomEditor(typeof(FixedGridScroll))]
-    public class FixedGridScrollEditor : UnityEditor.Editor
+    public class FixedGridScrollEditor : BaseScrollEditor
     {
-        public override VisualElement CreateInspectorGUI()
+        protected override void CreateInherentProperties(VisualElement container)
         {
-            var container = new VisualElement();
-            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._axis")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_viewport")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_content")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_contentPadding")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_space")));
             container.Add(new PropertyField(serializedObject.FindProperty("_cellSize")));
             container.Add(new PropertyField(serializedObject.FindProperty("_column")));
             container.Add(new PropertyField(serializedObject.FindProperty("_scrollbar")));
-            container.Add(new ScrollerDrawer().CreatePropertyGUI(serializedObject.FindProperty("_scroller")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._onValueChanged")));
-            return container;
         }
     }
 }

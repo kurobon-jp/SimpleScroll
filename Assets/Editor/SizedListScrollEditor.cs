@@ -6,20 +6,11 @@ using UnityEngine.UIElements;
 namespace SimpleScroll.Editor
 {
     [CustomEditor(typeof(SizedListScroll))]
-    public class SizedListScrollEditor : UnityEditor.Editor
+    public class SizedListScrollEditor : BaseScrollEditor
     {
-        public override VisualElement CreateInspectorGUI()
+        protected override void CreateInherentProperties(VisualElement container)
         {
-            var container = new VisualElement();
-            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._axis")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_viewport")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_content")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_contentPadding")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_space")));
             container.Add(new PropertyField(serializedObject.FindProperty("_scrollbar")));
-            container.Add(new ScrollerDrawer().CreatePropertyGUI(serializedObject.FindProperty("_scroller")));
-            container.Add(new PropertyField(serializedObject.FindProperty("_scroller._onValueChanged")));
-            return container;
         }
     }
 }
