@@ -16,28 +16,55 @@ namespace SimpleScroll
         [SerializeField] private RectTransform _content;
         [SerializeField] private Scroller _scroller;
         [SerializeField] private Scrollbar _scrollbar;
+        [SerializeField] private bool _isDraggable = true;
+        [SerializeField] private bool _isScrollable = true;
 
         private bool _isDirty;
         private int _pointerId = int.MinValue;
         private int _dataCount;
         private bool _isResized;
 
-        internal Scroller Scroller => _scroller;
+        internal Scroller Scroller
+        {
+            get
+            {
+                _scroller ??= new Scroller();
+                return _scroller;
+            }
+        }
+
         protected RectTransform Content => _content;
         internal CellViewPool CellViewPool { get; } = new();
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
         protected float ViewportHalf { get; private set; }
         public Range VisibleRange { get; private set; } = Range.Empty;
-        public ScrollEvent OnValueChanged => Scroller?.OnValueChanged;
-        public bool IsDraggable { get; set; } = true;
-        public bool IsScrollable { get; set; } = true;
-        public bool IsDragging => Scroller?.IsDragging ?? false;
-        public bool IsScrolling => Scroller?.IsScrolling ?? false;
-        public float ScrollPosition => Scroller?.ScrollPosition ?? 0f;
-        public float NormalizedPosition => Scroller?.NormalizedPosition ?? 0f;
+        public ScrollEvent OnValueChanged => _scroller.OnValueChanged;
+        public bool IsDragging => Scroller.IsDragging;
+        public bool IsScrolling => Scroller.IsScrolling;
+        public bool IsIdling => Scroller.IsIdling;
+        public float ScrollPosition => Scroller.ScrollPosition;
+        public float NormalizedPosition => Scroller.NormalizedPosition;
+
+        public bool IsDraggable
+        {
+            get => _isDraggable;
+            set => _isDraggable = value;
+        }
+
+        public bool IsScrollable
+        {
+            get => _isScrollable;
+            set => _isScrollable = value;
+        }
 
         public event Action<Range> OnVisibleRangeChanged;
+
+        public event Action<ScrollStatus> OnScrollStateChanged
+        {
+            add => Scroller.OnScrollStateChanged += value;
+            remove => Scroller.OnScrollStateChanged -= value;
+        }
 
         protected override void OnEnable()
         {
@@ -55,9 +82,6 @@ namespace SimpleScroll
 
         protected override void OnDisable()
         {
-#if UNITY_EDITOR
-            _tracker.Clear();
-#endif
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
         }
@@ -69,25 +93,24 @@ namespace SimpleScroll
 
         private void OnScrollbarValueChanged(float normalizedPosition)
         {
-            if (_scroller == null) return;
-            _scroller.OnScroll();
+            Scroller.OnScroll();
             SetNormalizedPosition(normalizedPosition);
         }
 
         private void UpdateScrollbar()
         {
-            if (_scrollbar == null || _scroller == null) return;
-            _scrollbar.SetValueWithoutNotify(_scroller.NormalizedPosition);
+            if (_scrollbar == null) return;
+            _scrollbar.SetValueWithoutNotify(Scroller.NormalizedPosition);
         }
 
         private void Resize()
         {
-            if (DataSource == null || _scroller == null) return;
-            ViewportSize = _viewport.rect.size[_scroller.Axis];
+            if (DataSource == null) return;
+            ViewportSize = _viewport.rect.size[Scroller.Axis];
             ViewportHalf = ViewportSize * 0.5f;
 
             var scrollSize = GetScrollSize();
-            _scroller.Initialize(scrollSize);
+            Scroller.Initialize(scrollSize);
             _isResized = true;
 
             if (_scrollbar == null) return;
@@ -136,8 +159,7 @@ namespace SimpleScroll
                 _isDirty = false;
             }
 
-            if (_scroller == null) return;
-            var scrollDelta = _scroller.Update(targetPosition);
+            var scrollDelta = Scroller.Update(targetPosition);
             UpdateScrollbar();
             var visibleRange = Reposition(scrollDelta, _isResized);
             _isResized = false;
@@ -147,43 +169,49 @@ namespace SimpleScroll
                 OnVisibleRangeChanged?.Invoke(visibleRange);
             }
 
-            if (_scroller.IsScrolling)
+            if (Scroller.IsScrolling)
             {
-                _scroller.Stop();
+                Scroller.Stop();
             }
         }
 
         private void SetNormalizedPosition(float normalizedPosition)
         {
-            _scroller.NormalizedPosition = normalizedPosition;
-            OnNormalizePositionChanged(_scroller.NormalizedPosition);
+            Scroller.NormalizedPosition = normalizedPosition;
+            OnNormalizePositionChanged(Scroller.NormalizedPosition);
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
         {
-            if (DataSource == null || _pointerId != int.MinValue) return;
+            if (DataSource == null || _pointerId != int.MinValue || !IsDraggable) return;
             _pointerId = e.pointerId;
-            _scroller?.OnBeginDrag(e);
+            Scroller.OnBeginDrag(e);
         }
 
         void IDragHandler.OnDrag(PointerEventData e)
         {
             if (DataSource == null || _pointerId != e.pointerId || !IsDraggable) return;
-            _scroller?.OnDrag(e);
+            Scroller.OnDrag(e);
         }
 
         void IEndDragHandler.OnEndDrag(PointerEventData e)
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            var targetPosition = _scroller?.OnEndDrag(e) ?? 0f;
+            if (!IsDraggable)
+            {
+                Scroller.Stop();
+                return;
+            }
+
+            var targetPosition = Scroller.OnEndDrag(e);
             OnDrag(targetPosition);
         }
 
         void IScrollHandler.OnScroll(PointerEventData e)
         {
             if (DataSource == null || !IsScrollable) return;
-            _scroller?.OnScroll();
+            Scroller.OnScroll();
             OnScroll(e.scrollDelta.GetAxialValue());
         }
 
@@ -199,9 +227,8 @@ namespace SimpleScroll
 
         public void StopScroll()
         {
-            if (_scroller == null) return;
-            var velocity = _scroller.Velocity;
-            _scroller.Stop();
+            var velocity = Scroller.Velocity;
+            Scroller.Stop();
             OnStopScroll(velocity);
         }
 
@@ -217,8 +244,7 @@ namespace SimpleScroll
 
         private void SetAxisPivotAndDeltaSize()
         {
-            if (_scroller == null) return;
-            var axis = _scroller.Axis;
+            var axis = Scroller.Axis;
             if (_viewport != null)
             {
                 _viewport.SetPivot(0.5f, axis);
@@ -235,9 +261,9 @@ namespace SimpleScroll
 
         protected override void OnValidate()
         {
-            if (IsDestroyed() || _scroller == null) return;
+            if (IsDestroyed()) return;
             _tracker.Clear();
-            var axis = _scroller.Axis;
+            var axis = Scroller.Axis;
             var pivot = axis == 0
                 ? DrivenTransformProperties.PivotX
                 : DrivenTransformProperties.PivotY;

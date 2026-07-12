@@ -4,17 +4,17 @@ using UnityEngine.EventSystems;
 
 namespace SimpleScroll
 {
+    public enum ScrollStatus
+    {
+        Idle,
+        Dragging,
+        Scrolling,
+        Coasting
+    }
+
     [Serializable]
     internal class Scroller
     {
-        private enum ScrollStatus
-        {
-            Idle,
-            Dragging,
-            Scrolling,
-            Coasting
-        }
-
         internal const float VelocityThreshold = 10f;
 
         [SerializeField] private RectTransform.Axis _axis;
@@ -38,14 +38,27 @@ namespace SimpleScroll
         private RectTransform _dragTarget;
         private int _dragFrame;
 
+        internal ScrollStatus Status
+        {
+            get => _status;
+            set
+            {
+                if (_status == value) return;
+                _status = value;
+                OnScrollStateChanged?.Invoke(value);
+            }
+        }
+
         internal int Axis => (int)_axis;
         internal int Direction => _axis == RectTransform.Axis.Horizontal ? -1 : 1;
         internal bool IsInertia => _inertia;
-        internal bool IsIdling => _status == ScrollStatus.Idle;
-        internal bool IsDragging => _status == ScrollStatus.Dragging;
-        internal bool IsScrolling => _status == ScrollStatus.Scrolling;
+        internal bool IsIdling => Status == ScrollStatus.Idle;
+        internal bool IsDragging => Status == ScrollStatus.Dragging;
+        internal bool IsScrolling => Status == ScrollStatus.Scrolling;
         internal float Velocity => _velocity * -Direction;
         internal ScrollEvent OnValueChanged => _onValueChanged;
+
+        internal event Action<ScrollStatus> OnScrollStateChanged;
 
         internal float ScrollSize
         {
@@ -97,7 +110,7 @@ namespace SimpleScroll
         {
             _dragTarget = e.pointerDrag?.transform as RectTransform;
             if (_dragTarget == null) return;
-            _status = ScrollStatus.Dragging;
+            Status = ScrollStatus.Dragging;
             _velocity = 0f;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_dragTarget, e.position, e.pressEventCamera,
                 out _pointerPoint);
@@ -121,26 +134,26 @@ namespace SimpleScroll
         {
             if (!_inertia)
             {
-                _status = ScrollStatus.Idle;
+                Status = ScrollStatus.Idle;
                 // _velocity = 0f;
                 return ScrollPosition;
             }
 
-            _status = ScrollStatus.Coasting;
+            Status = ScrollStatus.Coasting;
             _velocity = Mathf.Clamp(_velocity, -_maxVelocity, _maxVelocity);
             return ScrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
         }
 
         internal void OnScroll()
         {
-            _status = ScrollStatus.Scrolling;
+            Status = ScrollStatus.Scrolling;
             _velocity = 0f;
         }
 
         internal float Update(float targetPosition)
         {
             var deltaTime = Time.unscaledDeltaTime;
-            if (_status == ScrollStatus.Dragging)
+            if (Status == ScrollStatus.Dragging)
             {
                 if (_dragFrame != Time.frameCount)
                 {
@@ -159,7 +172,7 @@ namespace SimpleScroll
 
             var speed = _velocity;
             var scrollPos = ScrollPosition;
-            if (_status == ScrollStatus.Coasting)
+            if (Status == ScrollStatus.Coasting)
             {
                 var absSpeed = Mathf.Abs(speed);
                 var smoothTime = Mathf.Max(0.05f, absSpeed / _deceleration);
@@ -199,7 +212,7 @@ namespace SimpleScroll
 
         internal void Stop()
         {
-            _status = ScrollStatus.Idle;
+            Status = ScrollStatus.Idle;
             _velocity = 0f;
         }
 
