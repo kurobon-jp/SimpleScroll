@@ -198,12 +198,7 @@ namespace SimpleScroll
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            if (!IsDraggable)
-            {
-                Scroller.Stop();
-                return;
-            }
-
+            if (!IsDraggable) return;
             var targetPosition = Scroller.OnEndDrag(e);
             OnDrag(targetPosition);
         }
