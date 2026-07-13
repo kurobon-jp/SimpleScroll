@@ -60,7 +60,7 @@ namespace SimpleScroll
 
         public event Action<Range> OnVisibleRangeChanged;
 
-        public event Action<ScrollStatus> OnScrollStateChanged
+        public event Action<ScrollState> OnScrollStateChanged
         {
             add => Scroller.OnScrollStateChanged += value;
             remove => Scroller.OnScrollStateChanged -= value;
@@ -173,6 +173,8 @@ namespace SimpleScroll
             {
                 Scroller.Stop();
             }
+
+            Scroller.NotifyScrollStateChanged();
         }
 
         private void SetNormalizedPosition(float normalizedPosition)

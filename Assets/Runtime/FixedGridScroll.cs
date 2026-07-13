@@ -67,9 +67,9 @@ namespace SimpleScroll
             _targetPosition = targetPosition;
         }
 
-        protected override void OnScroll(float delta)
+        protected override void OnScroll(float scrollDelta)
         {
-            _targetPosition = Scroller.ScrollPosition + delta * 100f * -Scroller.Direction;
+            _targetPosition = Scroller.ScrollPosition + scrollDelta * 100f * -Scroller.Direction;
         }
 
         protected override void OnStopScroll(float velocity)
@@ -130,7 +130,7 @@ namespace SimpleScroll
 
         private void LateUpdate()
         {
-            if (Scroller.IsIdling)
+            if (Scroller.IsIdling || Scroller.IsSnapping)
             {
                 _targetPosition = ClampPosition(_targetPosition);
             }
@@ -157,6 +157,10 @@ namespace SimpleScroll
             if (!smooth)
             {
                 Scroller.ScrollPosition = _targetPosition;
+            }
+            else
+            {
+                Scroller.State = ScrollState.Snapping;
             }
         }
     }
