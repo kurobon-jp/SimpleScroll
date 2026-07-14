@@ -26,6 +26,9 @@ namespace SimpleScroll
         [SerializeField, Range(0.1f, 1f), Tooltip("%")]
         private float _dragSensitivity = 1f;
 
+        [SerializeField]
+        private float _scrollSensitivity = 100f;
+        
         [SerializeField] private bool _overScroll = true;
         [SerializeField] private ScrollEvent _onValueChanged;
 
@@ -59,6 +62,8 @@ namespace SimpleScroll
         internal bool IsScrolling => State == ScrollState.Scrolling;
         internal bool IsSnapping => State == ScrollState.Snapping;
         internal float Velocity => _velocity * -Direction;
+        internal float ScrollSensitivity => _scrollSensitivity * -Direction;
+
         internal ScrollEvent OnValueChanged => _onValueChanged;
 
         internal event Action<ScrollState> OnScrollStateChanged;
