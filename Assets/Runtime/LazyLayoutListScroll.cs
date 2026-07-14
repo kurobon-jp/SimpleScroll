@@ -50,7 +50,7 @@ namespace SimpleScroll
 
         protected override void OnScroll(float scrollDelta)
         {
-            _targetPosition = Scroller.ScrollPosition + scrollDelta * 100f * -Scroller.Direction;
+            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
             _targetIndex = -1;
         }
 
@@ -125,7 +125,7 @@ namespace SimpleScroll
                     }
                     else
                     {
-                        Scroller.State = ScrollState.Snapping;
+                        Scroller.OnSnap();
                     }
                 }
             }

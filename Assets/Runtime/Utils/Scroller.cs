@@ -8,7 +8,6 @@ namespace SimpleScroll
     {
         Idle,
         Dragging,
-        Scrolling,
         Coasting,
         Snapping
     }
@@ -59,7 +58,6 @@ namespace SimpleScroll
         internal bool IsInertia => _inertia;
         internal bool IsIdling => State == ScrollState.Idle;
         internal bool IsDragging => State == ScrollState.Dragging;
-        internal bool IsScrolling => State == ScrollState.Scrolling;
         internal bool IsSnapping => State == ScrollState.Snapping;
         internal float Velocity => _velocity * -Direction;
         internal float ScrollSensitivity => _scrollSensitivity * -Direction;
@@ -153,9 +151,9 @@ namespace SimpleScroll
             return ScrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
         }
 
-        internal void OnScroll()
+        internal void OnSnap()
         {
-            State = ScrollState.Scrolling;
+            State = ScrollState.Snapping;
             _velocity = 0f;
         }
 
@@ -218,6 +216,7 @@ namespace SimpleScroll
             else
             {
                 State = ScrollState.Idle;
+                ScrollPosition = targetPosition;
             }
 
             return scrollDelta;

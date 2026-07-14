@@ -41,7 +41,7 @@ namespace SimpleScroll
         public Range VisibleRange { get; private set; } = Range.Empty;
         public ScrollEvent OnValueChanged => _scroller.OnValueChanged;
         public bool IsDragging => Scroller.IsDragging;
-        public bool IsScrolling => Scroller.IsScrolling;
+        public bool IsSnapping => Scroller.IsSnapping;
         public bool IsIdling => Scroller.IsIdling;
         public float ScrollPosition => Scroller.ScrollPosition;
         public float NormalizedPosition => Scroller.NormalizedPosition;
@@ -93,7 +93,7 @@ namespace SimpleScroll
 
         private void OnScrollbarValueChanged(float normalizedPosition)
         {
-            Scroller.OnScroll();
+            Scroller.OnSnap();
             SetNormalizedPosition(normalizedPosition);
         }
 
@@ -169,11 +169,6 @@ namespace SimpleScroll
                 OnVisibleRangeChanged?.Invoke(visibleRange);
             }
 
-            if (Scroller.IsScrolling)
-            {
-                Scroller.Stop();
-            }
-
             Scroller.NotifyScrollStateChanged();
         }
 
@@ -208,7 +203,7 @@ namespace SimpleScroll
         void IScrollHandler.OnScroll(PointerEventData e)
         {
             if (DataSource == null || !IsScrollable) return;
-            Scroller.OnScroll();
+            Scroller.OnSnap();
             OnScroll(e.scrollDelta.GetAxialValue());
         }
 

@@ -86,7 +86,7 @@ namespace SimpleScroll
                 positionIndex -= Math.Sign(velocity);
             }
 
-            SetPositionIndex(positionIndex);
+            SetPositionIndex(positionIndex, true, false);
         }
 
         protected override void OnScroll(float scrollDelta)
@@ -97,7 +97,7 @@ namespace SimpleScroll
                 _scrollDelta = 0f;
             }
 
-            _scrollDelta += scrollDelta;
+            _scrollDelta += scrollDelta * Scroller.ScrollSensitivity * 0.01f;
             SetPositionIndex(_positionIndex - (int)_scrollDelta);
             _scrollDelta %= 1f;
         }
@@ -161,11 +161,6 @@ namespace SimpleScroll
                 OnReposition?.Invoke(cell, i, (pos + scrollPosition) / ViewportHalf);
             }
 
-            if (isResized)
-            {
-                UpdateIndicator(_positionIndex);
-            }
-
             return visibleRange;
         }
 
@@ -188,6 +183,11 @@ namespace SimpleScroll
 
         public void SetPositionIndex(int positionIndex, bool smooth = true)
         {
+            SetPositionIndex(positionIndex, smooth, true);
+        }
+
+        private void SetPositionIndex(int positionIndex, bool smooth, bool snap)
+        {
             if (DataSource == null) return;
             var count = DataSource.GetDataCount();
             if (count == 0) return;
@@ -205,9 +205,9 @@ namespace SimpleScroll
             {
                 Scroller.ScrollPosition = -positionIndex * CellStride;
             }
-            else
+            else if (snap)
             {
-                Scroller.State = ScrollState.Snapping;
+                Scroller.OnSnap();
             }
         }
 

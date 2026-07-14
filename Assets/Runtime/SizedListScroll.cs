@@ -61,7 +61,7 @@ namespace SimpleScroll
 
         protected override void OnScroll(float scrollDelta)
         {
-            _targetPosition = Scroller.ScrollPosition + scrollDelta * 100f * -Scroller.Direction;
+            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
         }
 
         protected override void OnStopScroll(float velocity)
@@ -153,7 +153,7 @@ namespace SimpleScroll
             }
             else
             {
-                Scroller.State = ScrollState.Snapping;
+                Scroller.OnSnap();
             }
         }
     }
