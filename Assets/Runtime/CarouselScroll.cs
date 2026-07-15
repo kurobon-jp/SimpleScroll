@@ -164,10 +164,6 @@ namespace SimpleScroll
             return visibleRange;
         }
 
-        protected override void OnNormalizePositionChanged(float _)
-        {
-        }
-
         private void LateUpdate()
         {
             if (Scroller.IsIdling || Scroller.IsSnapping)
