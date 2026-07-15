@@ -31,6 +31,7 @@ namespace SimpleScroll
         private void OnDisable()
         {
             IsHandling = false;
+            Listener = null;
             if (_scrollbar == null) return;
             _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
         }
