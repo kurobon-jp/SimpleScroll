@@ -95,11 +95,12 @@ namespace SimpleScroll
                 end++;
             }
 
-            if (sizeDelta != 0f && Math.Sign(scrollDelta) == -direction)
+            if (sizeDelta != 0f && (Math.Sign(scrollDelta) == -direction || !float.IsNaN(_normalizedPosition)))
             {
                 sizeDelta *= -direction;
                 _targetPosition += sizeDelta;
                 Scroller.ScrollPosition += sizeDelta;
+                _normalizedPosition = float.NaN;
             }
 
             if (isResized)
@@ -150,12 +151,6 @@ namespace SimpleScroll
             }
 
             visibleRange = new Range(visibleStart, visibleEnd);
-            if (!float.IsNaN(_normalizedPosition))
-            {
-                Scroller.NormalizedPosition = _normalizedPosition;
-                _normalizedPosition = float.NaN;
-            }
-
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
 
             _targetPosition -= sizeDelta;

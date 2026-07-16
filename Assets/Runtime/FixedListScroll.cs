@@ -128,6 +128,13 @@ namespace SimpleScroll
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             var offset = (ViewportSize - CellStride) * (Mathf.Clamp01(anchor) * direction + 0.5f);
             var position = CellStride * positionIndex * direction + ViewportHalf - CellStride * 0.5f - offset;
+            SetScrollPosition(position, smooth);
+        }
+        
+        public void SetScrollPosition(float position, bool smooth = true)
+        {
+            if (DataSource == null) return;
+            Scroller.Stop();
             _targetPosition = ClampPosition(position);
             if (!smooth)
             {

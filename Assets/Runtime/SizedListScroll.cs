@@ -141,11 +141,17 @@ namespace SimpleScroll
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
-            Scroller.Stop();
             var dataCount = DataSource.GetDataCount();
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             var size = DataSource.GetCellViewSize(positionIndex);
             var position = (_offsets[positionIndex] - (ViewportSize - size) * anchor) * Scroller.Direction;
+            SetScrollPosition(position, smooth);
+        }
+
+        public void SetScrollPosition(float position, bool smooth = true)
+        {
+            if (DataSource == null) return;
+            Scroller.Stop();
             _targetPosition = ClampPosition(position);
             if (!smooth)
             {
