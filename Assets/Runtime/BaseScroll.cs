@@ -10,6 +10,7 @@ namespace SimpleScroll
 {
     [RequireComponent(typeof(RectTransform))]
     public abstract class BaseScroll<TDataSource> : UIBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
+        IScrollbarEventListener,
         IScrollHandler where TDataSource : IDataSource
     {
         [SerializeField] private RectTransform _viewport;
@@ -23,6 +24,7 @@ namespace SimpleScroll
         private int _pointerId = int.MinValue;
         private int _dataCount;
         private bool _isResized;
+        private ScrollbarEventDetector _scrollbarEventDetector;
 
         internal Scroller Scroller
         {
@@ -41,7 +43,7 @@ namespace SimpleScroll
         public Range VisibleRange { get; private set; } = Range.Empty;
         public ScrollEvent OnValueChanged => _scroller.OnValueChanged;
         public bool IsDragging => Scroller.IsDragging;
-        public bool IsScrolling => Scroller.IsScrolling;
+        public bool IsSnapping => Scroller.IsSnapping;
         public bool IsIdling => Scroller.IsIdling;
         public float ScrollPosition => Scroller.ScrollPosition;
         public float NormalizedPosition => Scroller.NormalizedPosition;
@@ -60,7 +62,7 @@ namespace SimpleScroll
 
         public event Action<Range> OnVisibleRangeChanged;
 
-        public event Action<ScrollStatus> OnScrollStateChanged
+        public event Action<ScrollState> OnScrollStateChanged
         {
             add => Scroller.OnScrollStateChanged += value;
             remove => Scroller.OnScrollStateChanged -= value;
@@ -77,24 +79,20 @@ namespace SimpleScroll
             SetAxisPivotAndDeltaSize();
             SetDirty();
             if (_scrollbar == null) return;
-            _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
+            _scrollbarEventDetector = _scrollbar.gameObject.AddComponent<ScrollbarEventDetector>();
+            _scrollbarEventDetector.Listener = this;
         }
 
         protected override void OnDisable()
         {
-            if (_scrollbar == null) return;
-            _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
+            if (_scrollbarEventDetector == null) return;
+            Destroy(_scrollbarEventDetector);
+            _scrollbarEventDetector = null;
         }
 
         protected override void OnRectTransformDimensionsChange()
         {
             SetDirty();
-        }
-
-        private void OnScrollbarValueChanged(float normalizedPosition)
-        {
-            Scroller.OnScroll();
-            SetNormalizedPosition(normalizedPosition);
         }
 
         private void UpdateScrollbar()
@@ -169,10 +167,7 @@ namespace SimpleScroll
                 OnVisibleRangeChanged?.Invoke(visibleRange);
             }
 
-            if (Scroller.IsScrolling)
-            {
-                Scroller.Stop();
-            }
+            Scroller.NotifyScrollStateChanged();
         }
 
         private void SetNormalizedPosition(float normalizedPosition)
@@ -205,9 +200,19 @@ namespace SimpleScroll
 
         void IScrollHandler.OnScroll(PointerEventData e)
         {
-            if (DataSource == null || !IsScrollable) return;
-            Scroller.OnScroll();
+            if (DataSource == null || !IsScrollable || _scrollbarEventDetector is { IsHandling: true }) return;
+            Scroller.OnSnap();
             OnScroll(e.scrollDelta.GetAxialValue());
+        }
+
+        void IScrollbarEventListener.OnScrollbarValueChanged(float normalizedPosition)
+        {
+            SetNormalizedPosition(normalizedPosition);
+        }
+
+        void IScrollbarEventListener.OnScrollbarHandling(bool isHandled)
+        {
+            Scroller.State = isHandled ? ScrollState.Dragging : ScrollState.Idle;
         }
 
         protected abstract float GetScrollSize();

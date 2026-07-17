@@ -59,9 +59,9 @@ namespace SimpleScroll
             _targetPosition = targetPosition;
         }
 
-        protected override void OnScroll(float delta)
+        protected override void OnScroll(float scrollDelta)
         {
-            _targetPosition = Scroller.ScrollPosition + delta * 100f * -Scroller.Direction;
+            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
         }
 
         protected override void OnStopScroll(float velocity)
@@ -125,7 +125,7 @@ namespace SimpleScroll
 
         private void LateUpdate()
         {
-            if (Scroller.IsIdling)
+            if (Scroller.IsIdling || Scroller.IsSnapping)
             {
                 _targetPosition = ClampPosition(_targetPosition);
             }
@@ -141,15 +141,25 @@ namespace SimpleScroll
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
-            Scroller.Stop();
             var dataCount = DataSource.GetDataCount();
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             var size = DataSource.GetCellViewSize(positionIndex);
             var position = (_offsets[positionIndex] - (ViewportSize - size) * anchor) * Scroller.Direction;
+            SetScrollPosition(position, smooth);
+        }
+
+        public void SetScrollPosition(float position, bool smooth = true)
+        {
+            if (DataSource == null) return;
+            Scroller.Stop();
             _targetPosition = ClampPosition(position);
             if (!smooth)
             {
                 Scroller.ScrollPosition = _targetPosition;
+            }
+            else
+            {
+                Scroller.OnSnap();
             }
         }
     }

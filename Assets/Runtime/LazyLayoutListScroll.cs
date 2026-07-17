@@ -48,9 +48,9 @@ namespace SimpleScroll
             _targetIndex = -1;
         }
 
-        protected override void OnScroll(float delta)
+        protected override void OnScroll(float scrollDelta)
         {
-            _targetPosition = Scroller.ScrollPosition + delta * 100f * -Scroller.Direction;
+            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
             _targetIndex = -1;
         }
 
@@ -123,6 +123,10 @@ namespace SimpleScroll
                     {
                         Scroller.ScrollPosition = _targetPosition;
                     }
+                    else
+                    {
+                        Scroller.OnSnap();
+                    }
                 }
             }
 
@@ -146,16 +150,15 @@ namespace SimpleScroll
             }
 
             visibleRange = new Range(visibleStart, visibleEnd);
-            if (!float.IsNaN(_normalizedPosition))
-            {
-                Scroller.NormalizedPosition = _normalizedPosition;
-                _normalizedPosition = float.NaN;
-            }
-
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
-
             _targetPosition -= sizeDelta;
             Scroller.ScrollPosition -= sizeDelta;
+            if (!float.IsNaN(_normalizedPosition))
+            {
+                base.Refresh(_normalizedPosition, false);
+                _normalizedPosition = float.NaN;
+            }
+            
             return visibleRange;
         }
 
@@ -205,7 +208,7 @@ namespace SimpleScroll
 
         private void LateUpdate()
         {
-            if (Scroller.IsIdling)
+            if (Scroller.IsIdling || Scroller.IsSnapping)
             {
                 _targetPosition = ClampPosition(_targetPosition);
             }
@@ -222,11 +225,6 @@ namespace SimpleScroll
         {
             base.Refresh(normalizedPosition, isRefreshVisibleCells);
             _normalizedPosition = normalizedPosition;
-        }
-
-        public void SetScrollPosition(float scrollPosition)
-        {
-            _targetPosition = Scroller.ScrollPosition = scrollPosition;
         }
 
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
