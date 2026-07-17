@@ -25,6 +25,8 @@ namespace SimpleScroll
         private void OnEnable()
         {
             _scrollbar = GetComponent<Scrollbar>();
+            if (_scrollbar == null) return;
+            _scrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
             _scrollbar.onValueChanged.AddListener(OnScrollbarValueChanged);
         }
 
