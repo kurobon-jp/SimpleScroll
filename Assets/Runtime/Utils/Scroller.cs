@@ -61,6 +61,7 @@ namespace SimpleScroll
         internal bool IsSnapping => State == ScrollState.Snapping;
         internal float Velocity => _velocity * -Direction;
         internal float ScrollSensitivity => _scrollSensitivity * -Direction;
+        internal bool OverScroll => _overScroll;
 
         internal ScrollEvent OnValueChanged => _onValueChanged;
 
@@ -78,7 +79,7 @@ namespace SimpleScroll
             set
             {
                 if (_scrollPosition == value) return;
-                _scrollPosition = _overScroll || float.IsInfinity(_scrollSize) ? value : ClampPosition(value);
+                _scrollPosition = _overScroll || float.IsInfinity(ScrollSize) ? value : ClampPosition(value);
                 _onValueChanged?.Invoke(value);
             }
         }
@@ -87,19 +88,19 @@ namespace SimpleScroll
         {
             get
             {
-                if (_scrollSize == 0f || float.IsInfinity(_scrollSize)) return 0f;
+                if (ScrollSize == 0f || float.IsInfinity(ScrollSize)) return 0f;
                 return Mathf.Clamp01(ScrollPosition * Direction / _scrollSize);
             }
             set
             {
-                if (_scrollSize == 0f || float.IsInfinity(_scrollSize)) return;
+                if (ScrollSize == 0f || float.IsInfinity(ScrollSize)) return;
                 ScrollPosition = Mathf.Clamp01(value) * _scrollSize * Direction;
             }
         }
 
         internal void Initialize(float scrollSize = float.PositiveInfinity)
         {
-            _scrollSize = Mathf.Max(0f, scrollSize);
+            ScrollSize = Mathf.Max(0f, scrollSize);
             if (float.IsInfinity(scrollSize)) return;
             var min = 0f;
             var max = scrollSize;

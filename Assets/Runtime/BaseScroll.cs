@@ -118,9 +118,9 @@ namespace SimpleScroll
             }
             else
             {
-                _scrollbar.gameObject.SetActive(true);
                 var size = Mathf.Clamp01(ViewportSize / (scrollSize + ViewportSize));
                 _scrollbar.size = Mathf.Max(size, 0.05f);
+                _scrollbar.gameObject.SetActive(true);
             }
         }
 
@@ -179,6 +179,7 @@ namespace SimpleScroll
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
         {
             if (DataSource == null || _pointerId != int.MinValue || !IsDraggable) return;
+            if (!Scroller.OverScroll && Scroller.ScrollSize <= 0f) return;
             _pointerId = e.pointerId;
             Scroller.OnBeginDrag(e);
         }
@@ -201,8 +202,17 @@ namespace SimpleScroll
         void IScrollHandler.OnScroll(PointerEventData e)
         {
             if (DataSource == null || !IsScrollable || _scrollbarEventDetector is { IsHandling: true }) return;
+            var scrollSize = Scroller.ScrollSize;
+            if (scrollSize <= 0f) return;
+            var axialValue = e.scrollDelta.GetAxialValue();
+            if (!float.IsInfinity(scrollSize))
+            {
+                var normalizedPosition = Scroller.NormalizedPosition;
+                if (normalizedPosition <= 0f && axialValue > 0f || normalizedPosition >= 1f && axialValue < 0f) return;
+            }
+
             Scroller.OnSnap();
-            OnScroll(e.scrollDelta.GetAxialValue());
+            OnScroll(axialValue);
         }
 
         void IScrollbarEventListener.OnScrollbarValueChanged(float normalizedPosition)
