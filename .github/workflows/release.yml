@@ -3,7 +3,13 @@ name: Sign and Release UPM Package
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release (for example, 1.0.11)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -18,17 +24,20 @@ jobs:
       UPM_SERVICE_ACCOUNT_KEY_SECRET: ${{ secrets.UPM_SERVICE_ACCOUNT_KEY_SECRET }}
       UPM_ORG_ID: ${{ secrets.UPM_ORG_ID }}
       DIST_DIR: /tmp/signed-upm-dist
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Read and validate package metadata
         shell: bash
         run: |
           package_name="$(jq -r '.name' Assets/package.json)"
           package_version="$(jq -r '.version' Assets/package.json)"
-          tag_version="${GITHUB_REF_NAME#v}"
+          tag_version="${RELEASE_TAG#v}"
 
           if [[ "$package_name" != "com.github.kurobon.simple_scroll" ]]; then
             echo "Unexpected package name: $package_name" >&2
@@ -87,6 +96,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             /tmp/signed-upm-dist/*.tgz
             /tmp/signed-upm-dist/*.tar.gz
@@ -95,5 +105,5 @@ jobs:
         uses: openupm/openupm-action@v1
         with:
           package: com.github.kurobon.simple_scroll
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.RELEASE_TAG }}
           timeout-minutes: 30
