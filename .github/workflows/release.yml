@@ -82,8 +82,9 @@ jobs:
           fi
 
           archive="${archives[0]}"
-          tar -tzf "$archive" | grep -qx 'package/package.json'
-          tar -tzf "$archive" | grep -qx 'package/.attestation.p7m'
+          archive_entries="$(tar -tzf "$archive")"
+          grep -Fxq 'package/package.json' <<< "$archive_entries"
+          grep -Fxq 'package/.attestation.p7m' <<< "$archive_entries"
 
           archive_name="$(tar -xOzf "$archive" package/package.json | jq -r '.name')"
           archive_version="$(tar -xOzf "$archive" package/package.json | jq -r '.version')"
