@@ -10,7 +10,7 @@ namespace SimpleScroll.Editor
     {
         protected override void CreateInherentProperties(VisualElement container)
         {
-            container.Add(new PropertyField(serializedObject.FindProperty("_defaultCellSize")));
+            container.Add(new PropertyField(serializedObject.FindProperty("_estimatedCellSize")));
             container.Add(new PropertyField(serializedObject.FindProperty("_scrollbar")));
         }
     }
