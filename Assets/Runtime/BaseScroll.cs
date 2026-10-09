@@ -40,6 +40,22 @@ namespace SimpleScroll
         protected TDataSource DataSource { get; private set; }
         protected float ViewportSize { get; private set; }
         protected float ViewportHalf { get; private set; }
+        // Layout offsets increase from the start of the content, regardless of the scroll axis.
+        protected float ScrollOffset => ToScrollOffset(Scroller.ScrollPosition);
+
+        protected float ToScrollOffset(float position) => position * Scroller.Direction;
+        protected float ToScrollPosition(float offset) => offset * Scroller.Direction;
+
+        // SetCellPosition expects the cell center relative to the viewport center.
+        protected float GetCellPosition(float offset, float size)
+        {
+            return ToScrollPosition(ViewportHalf - offset - size * 0.5f);
+        }
+
+        protected float GetAlignedScrollPosition(float offset, float size, float anchor)
+        {
+            return ToScrollPosition(offset - (ViewportSize - size) * anchor);
+        }
         public Range VisibleRange { get; private set; } = Range.Empty;
         public ScrollEvent OnValueChanged => _scroller.OnValueChanged;
         public bool IsDragging => Scroller.IsDragging;

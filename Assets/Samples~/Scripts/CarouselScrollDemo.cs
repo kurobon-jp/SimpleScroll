@@ -12,14 +12,15 @@ namespace SimpleScroll.Samples
 
         void Start()
         {
-            _carouselScroll.OnSelected += i =>
+            _carouselScroll.OnSelected += pos =>
             {
-                _selected.text = i.ToString();
-                Debug.Log($"Selected data index: {i}");
+                _selected.text = pos.ToString();
+                Debug.Log($"Selected position {pos}");
             };
-            _carouselScroll.OnReposition += (cell, i, f) =>
+
+            _carouselScroll.OnReposition += (cell, pos, distance) =>
             {
-                var scale = Mathf.Lerp(1f, 0.75f, Mathf.Abs(f));
+                var scale = Mathf.Lerp(1f, 0.75f, Mathf.Abs(distance));
                 cell.localScale = new Vector3(scale, scale, 1f);
             };
 
@@ -33,11 +34,11 @@ namespace SimpleScroll.Samples
             return _dataCount;
         }
 
-        void IDataSource.SetData(int position, GameObject go)
+        void IDataSource.SetData(int pos, GameObject go)
         {
             if (!go.TryGetComponent<CellView>(out var cellView)) return;
-            var dataIndex = this.GetDataIndex(position);
-            cellView.Setup(dataIndex, position, onClick: _ => _carouselScroll.SetPositionIndex(position));
+            var dataIndex = this.GetDataIndex(pos);
+            cellView.Setup(dataIndex, pos, onClick: _ => _carouselScroll.SetPositionIndex(pos));
         }
 
         GameObject IDataSource.GetCellView(int index)
