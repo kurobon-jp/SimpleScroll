@@ -1,4 +1,3 @@
-﻿using System;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -86,12 +85,21 @@ namespace SimpleScroll
 
             CellViewPool.ReleaseOutOfRange(start, end);
             var sizeDelta = 0f;
+            var sizesChanged = false;
+            // Use the measured lengths locally while the cached offsets are still unchanged.
+            var nextOffset = offset;
             for (var i = start; i <= end; i++)
             {
-                sizeDelta += LayoutCell(i, isResized, axis, 0f);
+                sizeDelta += MeasureCell(i, isResized, axis, ref sizesChanged);
+                nextOffset += DataSource.GetCellViewSize(i) + _space;
                 if (end != i || end >= dataCount - 1 ||
-                    DataSource.GetCellViewOffset(end + 1) >= scrollPosition + ViewportSize) continue;
+                    nextOffset >= scrollPosition + ViewportSize) continue;
                 end++;
+            }
+
+            if (sizesChanged)
+            {
+                Scroller.ScrollSize = GetScrollSize();
             }
 
             if (sizeDelta != 0f && ToScrollOffset(scrollDelta) < 0f)
@@ -131,12 +139,18 @@ namespace SimpleScroll
 
             scrollPosition = ScrollOffset;
             sizeDelta = 0f;
+            sizesChanged = false;
             if (start > 0 && DataSource.GetCellViewOffset(start) > scrollPosition)
             {
                 do
                 {
-                    sizeDelta = LayoutCell(--start, isResized, axis, sizeDelta, true);
-                } while (DataSource.GetCellViewOffset(start) + sizeDelta > scrollPosition);
+                    sizeDelta += MeasureCell(--start, isResized, axis, ref sizesChanged);
+                } while (start > 0 && DataSource.GetCellViewOffset(start) + sizeDelta > scrollPosition);
+            }
+
+            if (sizesChanged)
+            {
+                Scroller.ScrollSize = GetScrollSize();
             }
 
             var visibleStart = start;
@@ -149,20 +163,28 @@ namespace SimpleScroll
             }
 
             visibleRange = new Range(visibleStart, visibleEnd);
-            Content.SetLocalPosition(Scroller.ScrollPosition, axis);
-            _targetPosition -= sizeDelta;
-            Scroller.ScrollPosition -= sizeDelta;
+            // Measuring preceding cells moves the existing cells' offsets; move the content
+            // by the same amount to keep their screen positions unchanged on either axis.
+            var positionDelta = ToScrollPosition(sizeDelta);
+            _targetPosition -= positionDelta;
+            Scroller.ScrollPosition -= positionDelta;
             if (!float.IsNaN(_normalizedPosition))
             {
                 base.Refresh(_normalizedPosition, false);
                 _normalizedPosition = float.NaN;
             }
+
+            // All offsets are now current; placement does not trigger measurement or recalculation.
+            for (var i = start; i <= end; i++)
+            {
+                PositionCell(i, axis);
+            }
+            Content.SetLocalPosition(Scroller.ScrollPosition, axis);
             
             return visibleRange;
         }
 
-        private float LayoutCell(int index, bool isResized, int axis, float sizeDelta,
-            bool hasDeltaOffset = false)
+        private float MeasureCell(int index, bool isResized, int axis, ref bool sizesChanged)
         {
             var needRebuild = false;
             if (CellViewPool.TryGetVisibleCell(index, out var cell))
@@ -185,24 +207,19 @@ namespace SimpleScroll
 
             var actualSize = Mathf.Max(0, cell.rect.size[axis]);
             var size = DataSource.GetCellViewSize(index);
-            if (!Mathf.Approximately(size, actualSize))
-            {
-                sizeDelta += size - actualSize;
-                size = actualSize;
-                DataSource.SetCellViewSize(index, size);
-                var contentSize = DataSource.GetTotalContentSize(_contentPadding, _estimatedCellSize, _space);
-                Scroller.ScrollSize = Mathf.Max(0, contentSize - ViewportSize);
-            }
+            if (Mathf.Approximately(size, actualSize)) return 0f;
+            DataSource.SetCellViewSize(index, actualSize);
+            sizesChanged = true;
+            return size - actualSize;
+        }
 
+        private void PositionCell(int index, int axis)
+        {
+            if (!CellViewPool.TryGetVisibleCell(index, out var cell)) return;
             var offset = DataSource.GetCellViewOffset(index);
+            var size = DataSource.GetCellViewSize(index);
             var pos = GetCellPosition(offset, size);
-            if (hasDeltaOffset)
-            {
-                pos -= sizeDelta;
-            }
-
             cell.SetCellPosition(pos, axis);
-            return sizeDelta;
         }
 
         private void LateUpdate()

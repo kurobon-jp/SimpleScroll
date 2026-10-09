@@ -8,6 +8,9 @@ The tests use Unity Test Framework / NUnit and are split into EditMode and PlayM
 - Grid navigation and incomplete final rows.
 - Cell reuse, rebinding on Refresh, and releasing cells when data becomes empty.
 - LazyLayout measurement, shrinking size estimates, and Inspector property binding.
+- Batched offset recalculation, including size changes that cancel each other out.
+- Larger-than-estimated cells, reverse scrolling, preceding-cell measurement, and viewport resizing.
+- LazyLayout navigation and resizing across actual frame updates on both axes.
 - Loop index mapping and data collection / size-cache consistency.
 - Carousel immediate navigation across frames on both axes, bounded navigation, and negative loop positions.
 

@@ -122,13 +122,141 @@ namespace SimpleScroll.Tests
             Assert.That(scroll.NormalizedPosition, Is.EqualTo(1f).Within(0.001f));
         }
 
-        private sealed class MeasuredSource : LazyLayoutDataSource<int>
+        private sealed class MeasuredSource : LazyLayoutDataSource<int>, ILazyLayoutDataSource
         {
             public GameObject Prefab;
+            public int RecalculationCount;
+            public float[] ActualSizes;
             public readonly Dictionary<int, GameObject> Cells = new();
             public override GameObject GetCellView(int index) => Prefab;
             public override int GetCellViewType(int index) => 0;
-            public override void SetData(int index, GameObject cell) => Cells[index] = cell;
+            public override void SetData(int index, GameObject cell)
+            {
+                Cells[index] = cell;
+                if (ActualSizes != null)
+                    ((RectTransform)cell.transform).sizeDelta = Vector2.one * ActualSizes[index];
+            }
+            float ILazyLayoutDataSource.GetTotalContentSize(ContentPadding padding, float estimate, float space)
+            {
+                RecalculationCount++;
+                return GetTotalContentSize(padding, estimate, space);
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_RecalculatesOffsetsOnceForAMeasurementBatch(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            ((RectTransform)_prefab.transform).sizeDelta = new Vector2(40f, 40f);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            Assert.That(source.Cells.Count, Is.EqualTo(8));
+            // One calculation initializes the estimates; one incorporates all measured sizes.
+            Assert.That(source.RecalculationCount, Is.EqualTo(2));
+            Tick(scroll);
+            Assert.That(source.RecalculationCount, Is.EqualTo(2));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_RecalculatesWhenSizeChangesCancelEachOther(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab, ActualSizes = new[] { 150f, 50f, 100f, 100f } };
+            source.AddRange(new[] { 0, 1, 2, 3 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            Assert.That(source.GetCellViewOffset(1), Is.EqualTo(150f));
+            Assert.That(source.GetCellViewOffset(2), Is.EqualTo(200f));
+            Assert.That(source.RecalculationCount, Is.EqualTo(2));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_PrependMeasurementKeepsContentAndScrollPositionConsistent(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab, ActualSizes = new float[20] };
+            for (var i = 0; i < 20; i++) { source.Add(i); source.ActualSizes[i] = 100f; }
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.Refresh(450f / 1700f, false);
+            Tick(scroll);
+            Tick(scroll);
+            var oldScreenEnd = source.GetCellViewOffset(7) + source.GetCellViewSize(7) -
+                               (axis == 0 ? -scroll.ScrollPosition : scroll.ScrollPosition);
+            source.ActualSizes[2] = source.ActualSizes[3] = 40f;
+            for (var i = 4; i <= 7; i++)
+                ((RectTransform)source.Cells[i].transform).sizeDelta = new Vector2(40f, 40f);
+            typeof(LazyLayoutListScroll).GetMethod("Reposition", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(scroll, new object[] { axis == 0 ? 10f : -10f, false });
+            Assert.That(source.GetCellViewSize(3), Is.EqualTo(40f));
+            Assert.That(source.GetCellViewSize(2), Is.EqualTo(40f));
+            Assert.That(source.GetCellViewOffset(7) + source.GetCellViewSize(7) -
+                        (axis == 0 ? -scroll.ScrollPosition : scroll.ScrollPosition),
+                Is.EqualTo(oldScreenEnd).Within(0.001f));
+            Assert.That(_content.localPosition[axis], Is.EqualTo(scroll.ScrollPosition).Within(0.001f));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_LargerCellsAreMeasuredAndPositionedWithoutOverlap(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab, ActualSizes = new[] { 180f, 140f, 220f, 100f } };
+            source.AddRange(new[] { 0, 1, 2, 3 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            Assert.That(source.GetCellViewOffset(1), Is.EqualTo(180f));
+            Assert.That(source.GetCellViewOffset(2), Is.EqualTo(320f));
+            var direction = axis == 0 ? -1f : 1f;
+            Assert.That(source.Cells[0].transform.localPosition[axis], Is.EqualTo(60f * direction));
+            Assert.That(source.Cells[1].transform.localPosition[axis], Is.EqualTo(-100f * direction));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_ResizeRepositionsMeasuredCells(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            ((RectTransform)_root.transform).sizeDelta = new Vector2(500f, 500f);
+            scroll.Refresh();
+            Tick(scroll);
+            Assert.That(source.Cells.ContainsKey(4), Is.True);
+            Assert.That(source.Cells[0].transform.localPosition[axis],
+                Is.EqualTo(axis == 0 ? -200f : 200f).Within(0.001f));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_ReverseScrollKeepsVisibleTrailingEdgeStableWhenSizesChange(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.Refresh(0.5f, false);
+            Tick(scroll);
+            Tick(scroll);
+            var start = source.FindDataIndex(axis == 0 ? -scroll.ScrollPosition : scroll.ScrollPosition);
+            var last = start + 2;
+            var oldTrailingOffset = source.GetCellViewOffset(last) + source.GetCellViewSize(last);
+            var oldScreenOffset = oldTrailingOffset - (axis == 0 ? -scroll.ScrollPosition : scroll.ScrollPosition);
+            for (var i = start; i <= last; i++)
+                ((RectTransform)source.Cells[i].transform).sizeDelta = new Vector2(150f, 150f);
+            typeof(LazyLayoutListScroll).GetMethod("Reposition", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(scroll, new object[] { axis == 0 ? 10f : -10f, false });
+            var newTrailingOffset = source.GetCellViewOffset(last) + source.GetCellViewSize(last);
+            Assert.That(newTrailingOffset - (axis == 0 ? -scroll.ScrollPosition : scroll.ScrollPosition),
+                Is.EqualTo(oldScreenOffset).Within(0.001f));
         }
 
         [TestCase(0)]

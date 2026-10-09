@@ -9,9 +9,39 @@ namespace SimpleScroll.Samples
         [SerializeField] private int _dataCount = 100;
 
         private DemoDataSource _dataSource;
-        private int _ids;
 
-        private class DemoDataSource : LazyLayoutDataSource<int>
+        private readonly struct ChatMessage
+        {
+            private const string Characters = " abcdefghijklmnopqrstuvwxyz";
+
+            public readonly int Id;
+            public readonly string Name;
+            public readonly string Text;
+
+            public ChatMessage(int id)
+            {
+                Id = id;
+                Name = id.ToString();
+                // Keep messages deterministic without changing randomness elsewhere in the scene.
+                var randomState = Random.state;
+                try
+                {
+                    Random.InitState(id);
+                    var characters = new char[Random.Range(10, 500)];
+                    for (var i = 0; i < characters.Length; i++)
+                    {
+                        characters[i] = Characters[Random.Range(0, Characters.Length)];
+                    }
+                    Text = new string(characters);
+                }
+                finally
+                {
+                    Random.state = randomState;
+                }
+            }
+        }
+
+        private class DemoDataSource : LazyLayoutDataSource<ChatMessage>
         {
             private readonly GameObject[] _cellViews;
 
@@ -24,13 +54,14 @@ namespace SimpleScroll.Samples
             {
                 if (go.TryGetComponent<ChatView>(out var cellView))
                 {
-                    cellView.Setup(this[index]);
+                    var message = this[index];
+                    cellView.Setup(message.Name, message.Text);
                 }
             }
 
             public override int GetCellViewType(int index)
             {
-                return this[index] % 2;
+                return this[index].Id % 2;
             }
 
             public override GameObject GetCellView(int index)
@@ -44,7 +75,7 @@ namespace SimpleScroll.Samples
             _dataSource = new DemoDataSource(_cellViews);
             for (var i = 0; i < _dataCount; i++)
             {
-                _dataSource.Add(_ids++);
+                _dataSource.Add(new ChatMessage(i));
             }
 
             _listScroll.SetDataSource(_dataSource);
