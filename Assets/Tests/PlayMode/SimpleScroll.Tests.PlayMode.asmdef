@@ -1,0 +1,6 @@
+{
+  "name": "SimpleScroll.Tests.PlayMode",
+  "references": ["Unity.SimpleScroll"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}
