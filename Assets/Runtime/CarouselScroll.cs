@@ -73,13 +73,11 @@ namespace SimpleScroll
             _targetPosition = targetPosition;
             var scrollPos = Scroller.ScrollPosition;
             var velocity = Scroller.Velocity;
-            var direction = Scroller.Direction;
-            var stride = CellStride * direction;
-            var positionIndex = Mathf.RoundToInt(scrollPos / stride);
+            var positionIndex = Mathf.RoundToInt(ToScrollOffset(scrollPos) / CellStride);
             if (Scroller.IsInertia)
             {
-                positionIndex = Mathf.RoundToInt(targetPosition / stride);
-                _targetPosition = positionIndex * stride;
+                positionIndex = Mathf.RoundToInt(ToScrollOffset(targetPosition) / CellStride);
+                _targetPosition = ToScrollPosition(positionIndex * CellStride);
             }
             else if (positionIndex == _positionIndex && Mathf.Abs(velocity) >= 10f)
             {
@@ -104,7 +102,7 @@ namespace SimpleScroll
 
         protected override void OnStopScroll(float velocity)
         {
-            var stopPos = Scroller.ScrollPosition / CellStride * Scroller.Direction;
+            var stopPos = ScrollOffset / CellStride;
             var positionIndex = velocity < 0 ? Mathf.CeilToInt(stopPos) : Mathf.FloorToInt(stopPos);
             SetPositionIndex(positionIndex);
         }
@@ -121,10 +119,9 @@ namespace SimpleScroll
             }
 
             var axis = Scroller.Axis;
-            var direction = Scroller.Direction;
             var scrollPosition = Scroller.ScrollPosition;
             var stride = CellStride;
-            var offset = (scrollPosition - stride * 0.5f) * direction;
+            var offset = ToScrollOffset(scrollPosition - stride * 0.5f);
             var start = Mathf.FloorToInt((offset - ViewportHalf) / stride);
             var end = Mathf.FloorToInt((offset + ViewportHalf) / stride);
             if (!_loop)
@@ -152,7 +149,7 @@ namespace SimpleScroll
                     needReposition = true;
                 }
 
-                var pos = i * stride * -direction;
+                var pos = ToScrollPosition(-i * stride);
                 if (isResized || needReposition)
                 {
                     cell.SetCellPosition(pos, axis);
@@ -168,7 +165,7 @@ namespace SimpleScroll
         {
             if (Scroller.IsIdling || Scroller.IsSnapping)
             {
-                _targetPosition = _positionIndex * CellStride * Scroller.Direction;
+                _targetPosition = ToScrollPosition(_positionIndex * CellStride);
             }
 
             UpdatePosition(_targetPosition);
@@ -179,7 +176,7 @@ namespace SimpleScroll
 
         public void SetPositionIndex(int positionIndex, bool smooth = true)
         {
-            SetPositionIndex(positionIndex, smooth, true);
+            SetPositionIndex(positionIndex, smooth, smooth);
         }
 
         private void SetPositionIndex(int positionIndex, bool smooth, bool snap)
@@ -199,7 +196,8 @@ namespace SimpleScroll
             OnSelected?.Invoke(positionIndex);
             if (!smooth)
             {
-                Scroller.ScrollPosition = -positionIndex * CellStride;
+                Scroller.ScrollPosition = ToScrollPosition(positionIndex * CellStride);
+                StopScroll();
             }
             else if (snap)
             {

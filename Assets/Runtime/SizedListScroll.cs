@@ -79,10 +79,9 @@ namespace SimpleScroll
             }
 
             var axis = Scroller.Axis;
-            var direction = Scroller.Direction;
             var scrollPosition = Scroller.ScrollPosition;
             Content.SetLocalPosition(scrollPosition, axis);
-            scrollPosition *= direction;
+            scrollPosition = ScrollOffset;
             var start = Array.BinarySearch(_offsets, scrollPosition);
             if (start < 0)
             {
@@ -116,7 +115,7 @@ namespace SimpleScroll
 
                 var offset = _offsets[i];
                 var size = DataSource.GetCellViewSize(i);
-                var pos = (offset - ViewportHalf + size * 0.5f) * -direction;
+                var pos = GetCellPosition(offset, size);
                 cell.SetCellPosition(pos, axis);
             }
 
@@ -142,9 +141,10 @@ namespace SimpleScroll
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
+            if (dataCount <= 0) return;
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             var size = DataSource.GetCellViewSize(positionIndex);
-            var position = (_offsets[positionIndex] - (ViewportSize - size) * anchor) * Scroller.Direction;
+            var position = GetAlignedScrollPosition(_offsets[positionIndex], size, anchor);
             SetScrollPosition(position, smooth);
         }
 

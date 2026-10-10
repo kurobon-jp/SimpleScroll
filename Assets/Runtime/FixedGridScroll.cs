@@ -87,22 +87,21 @@ namespace SimpleScroll
             }
 
             var axis = Scroller.Axis;
-            var direction = Scroller.Direction;
             var rowStride = CellStride[axis];
             var colStride = CellStride[axis == 0 ? 1 : 0];
             var padding = _contentPadding.Start;
             var scrollPosition = Scroller.ScrollPosition;
             Content.SetLocalPosition(scrollPosition, axis);
-            scrollPosition += padding * -direction;
-            var startRow = Mathf.Max(0, Mathf.FloorToInt(scrollPosition * direction / rowStride));
-            var endRow = Mathf.FloorToInt((scrollPosition * direction + ViewportSize - 1) / rowStride);
+            var offset = ScrollOffset - padding;
+            var startRow = Mathf.Max(0, Mathf.FloorToInt(offset / rowStride));
+            var endRow = Mathf.FloorToInt((offset + ViewportSize - 1) / rowStride);
             var start = startRow * _column;
             var end = Mathf.Min((endRow + 1) * _column - 1, dataCount - 1);
             CellViewPool.ReleaseOutOfRange(start, end);
             visibleRange = new Range(start, end);
             for (var row = startRow; row <= endRow; row++)
             {
-                var rowPos = (row * rowStride - ViewportHalf + _cellSize[axis] * 0.5f + padding) * -direction;
+                var rowPos = GetCellPosition(row * rowStride + padding, _cellSize[axis]);
                 for (var col = 0; col < _column; col++)
                 {
                     var i = row * _column + col;
@@ -121,7 +120,7 @@ namespace SimpleScroll
 
                     var colPos = colStride * col - colStride * (_column - 1) * 0.5f;
                     cell.SetCellPosition(
-                        axis == 0 ? new Vector2(rowPos, colPos * direction) : new Vector2(colPos, rowPos));
+                        axis == 0 ? new Vector2(rowPos, ToScrollPosition(colPos)) : new Vector2(colPos, rowPos));
                 }
             }
 
@@ -143,16 +142,15 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetPositionIndex(int positionIndex, float pivot = 0.5f, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
             var axis = Scroller.Axis;
-            var direction = Scroller.Direction;
             var rowStride = CellStride[axis];
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1) / _column;
-            var offset = (ViewportSize - rowStride) * (Mathf.Clamp01(pivot) * direction + 0.5f);
-            var position = rowStride * positionIndex * direction + ViewportHalf - rowStride * 0.5f - offset;
+            var offset = rowStride * positionIndex + _contentPadding.Start;
+            var position = GetAlignedScrollPosition(offset, _cellSize[axis], Mathf.Clamp01(anchor));
             SetScrollPosition(position, smooth);
         }
         

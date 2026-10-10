@@ -1,0 +1,7 @@
+{
+  "name": "SimpleScroll.Tests.EditMode",
+  "references": ["Unity.SimpleScroll", "Unity.SimpleScroll.Editor"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}
