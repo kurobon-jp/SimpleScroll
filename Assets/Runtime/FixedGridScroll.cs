@@ -142,14 +142,15 @@ namespace SimpleScroll
             _targetPosition = Scroller.ScrollPosition;
         }
 
-        public void SetPositionIndex(int positionIndex, float pivot = 0.5f, bool smooth = true)
+        public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
             var axis = Scroller.Axis;
             var rowStride = CellStride[axis];
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1) / _column;
-            var position = GetAlignedScrollPosition(rowStride * positionIndex, rowStride, Mathf.Clamp01(pivot));
+            var offset = rowStride * positionIndex + _contentPadding.Start;
+            var position = GetAlignedScrollPosition(offset, _cellSize[axis], Mathf.Clamp01(anchor));
             SetScrollPosition(position, smooth);
         }
         

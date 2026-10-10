@@ -1,10 +1,10 @@
-![SimpleScroll — Lists, Grids, and Carousels for Unity uGUI](media/SimpleScroll-banner.png)
+![SimpleScroll — Lists, Grids, and Carousels for Unity uGUI](docs/images/SimpleScroll-banner.png)
 
 **Unity uGUI向けの、セルを再利用するリスト・グリッド・カルーセル。**
 
 レイアウトに合うコンポーネントを選び、データを渡すだけ。スクロールに合わせたセルの生成と再利用は、SimpleScrollが担当します。
 
-[English](README.md) · [インストール](#インストール) · [使い始める](#使い始める) · [サンプル](#サンプル)
+[English](README.md) · [インストール](#インストール) · [使い始める](#使い始める) · [デモ](#デモ)
 
 ## 特徴
 
@@ -34,12 +34,6 @@ UnityのPackage Managerで**Add package from git URL**を選び、次のURLを�
 ```text
 https://github.com/kurobon-jp/SimpleScroll.git?path=Assets/
 ```
-
-### サンプル
-
-Package ManagerでSimpleScrollを選び、Samples欄の**SimpleScroll Sample**をインポートしてください。デモシーンを開くと、ヒエラルキー、Inspector設定、データの渡し方を確認できます。
-
-主なサンプルは[Samples~/Scripts](Assets/Samples~/Scripts)と[Samples~/Scenes](Assets/Samples~/Scenes)にあります。
 
 ## 使い始める
 
@@ -97,9 +91,26 @@ _scroll.Refresh();
 _scroll.SetPositionIndex(20, anchor: 0.5f, smooth: true);
 ```
 
-リストの`anchor`はViewport内の配置位置です。`0`は先頭、`0.5`は中央、`1`は末尾に合わせます。実際の移動先はスクロール可能な範囲に制限されます。`FixedGridScroll`では、この引数名は`pivot`です。
+リストの`anchor`はViewport内の配置位置です。`0`は先頭、`0.5`は中央、`1`は末尾に合わせます。実際の移動先はスクロール可能な範囲に制限されます。
 
 正規化位置を指定して更新する場合は、先頭なら`Refresh(0f)`、末尾なら`Refresh(1f)`を使います。データ変更後にインデックスへ移動するときは、先に`Refresh()`でサイズとオフセットを更新してください。
+
+#### Refreshの引数
+
+```csharp
+void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
+```
+
+レイアウトを再計算し、指定した正規化位置へ移動します。
+
+| 引数 | 説明 |
+| --- | --- |
+| `normalizedPosition` | スクロール可能な範囲内の位置（`0`〜`1`）。`0`が先頭、`1`が末尾です。 |
+| `isRefreshVisibleCells` | `true`（既定値）で表示中のセルにもデータを再バインドします。`false`では表示中のセルを維持し、レイアウトを再計算します。表示内容も変更した場合は`true`を使ってください。 |
+
+`Refresh(bool isRefreshVisibleCells = true)`では、正規化位置を指定せずに更新できます。
+
+`LazyLayoutListScroll`では、未計測セルの推定サイズを使って全体の長さを計算するため、`normalizedPosition`が`0`・`1`以外の場合、すべてのセルを計測した場合の位置との間に誤差が出ることがあります。特定の項目へ移動したい場合は`SetPositionIndex`を使ってください。
 
 ## データソースとセルの再利用
 
@@ -136,19 +147,90 @@ _scroll.SetPositionIndex(20, anchor: 0.5f, smooth: true);
 
 `LazyLayoutListScroll`は、最初は推定サイズで計算し、表示したセルを計測します。実際のサイズが分かるにつれて、コンテンツ全体の長さやスクロールバーが変化することがあります。計測にはレイアウトの再構築とオフセットの再計算が必要なので、サイズが分かっている場合は`SizedListScroll`を選んでください。
 
+## コンポーネントのパラメータ
+
+Inspectorに表示される項目の説明です。サイズと余白はRectTransformのローカル座標単位で指定します。
+
+### 共通設定
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Axis** | `Horizontal`（横）または`Vertical`（縦）を選びます。 |
+| **Viewport** | 表示領域のRectTransform。未指定の場合は、このコンポーネント自身のRectTransformを使います。 |
+| **Content** | セルを配置する親RectTransform。Viewportの子を割り当てます。 |
+| **Scrollable** | マウスホイールなどのスクロール入力を受け付けます。 |
+| **Scrolling / Scroll Sensitivity** | スクロール入力の移動量。大きいほど移動量が増えます。カルーセルでは項目の切り替え量に影響します。 |
+| **Draggable** | ポインターによるドラッグ操作を受け付けます。 |
+| **Dragging / Inertia** | ドラッグを離した後の慣性移動を有効にします。 |
+| **Dragging / Deceleration** | 慣性の減速量（px/sec²）。大きいほど短い距離で止まります。既定値は`10000`です。 |
+| **Dragging / Max Velocity** | 慣性移動の最大速度（px/sec）。既定値は`10000`です。 |
+| **Dragging / Drag Sensitivity** | ドラッグ移動量の倍率（`0.1`〜`1`）。`1`でポインターと同じ移動量になります。 |
+| **Dragging / Over Scroll** | スクロール範囲の端を越える移動を許可します。|
+| **On Value Changed** | スクロール位置の変化を通知するイベント。値は正規化位置ではなく、符号付きのスクロール座標です（横は先頭から負方向、縦は正方向）。 |
+
+### リスト・グリッド共通
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Content Padding / Start・End** | スクロール軸方向の先頭・末尾の余白。縦では上・下、横では左・右です。 |
+| **Space** | セル間の余白。リストはスクロール軸方向の値、グリッドは`X`（横）・`Y`（縦）の値です。 |
+| **Scrollbar** | 任意のuGUI Scrollbar。位置とハンドルサイズを同期し、スクロール不要時はGameObjectを非表示にします。方向はスクロール軸に合わせ、値`0`が先頭になるよう設定してください。 |
+
+### FixedListScroll
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Cell Size** | 全セル共通のスクロール軸方向のサイズ。セル間の余白は含めません。Prefabのサイズもこの値に合わせます。 |
+
+### LazyLayoutListScroll
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Estimated Cell Size** | 未計測セルのスクロール軸方向の推定サイズ。既定値は`100`です。実際のセルに近い値にすると、計測後のコンテンツ長やスクロールバーの変化を抑えられます。セル間の余白は含めません。 |
+
+### FixedGridScroll
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Cell Size / X・Y** | 全セル共通の幅・高さ。セル間の余白は含めません。Prefabのサイズもこの値に合わせます。 |
+| **Column** | スクロール軸と直交する方向に並べるセル数。縦スクロールでは列数、横スクロールでは行数です。`1`以上を指定します。 |
+
+### CarouselScroll
+
+| パラメータ | 説明 |
+| --- | --- |
+| **Cell Size** | 全セル共通のスクロール軸方向のサイズ。Prefabのサイズもこの値に合わせます。 |
+| **Space** | スクロール軸方向のセル間の余白。中心間の距離は`Cell Size + Space`です。 |
+| **Loop** | 末尾から先頭、先頭から末尾へ続くループを有効にします。無効時は最初・最後のセルで止まります。 |
+| **Indicator** | 任意のuGUI Toggleテンプレート。データ件数分を同じ親の下に複製し、選択中の項目を`isOn`で表示します。元のテンプレートは非表示になります。 |
+
+カルーセルは中央へのスナップで配置するため、Content Paddingは使用しません。セルサイズは正の値にし、`Cell Size + Space`も正になるよう設定してください。
+
 ## デモ
 
-| 固定サイズのリスト | 可変サイズのリスト |
-| --- | --- |
-| ![FixedListScrollのデモ](media/FixedListScroll.gif) | ![SizedListScrollのデモ](media/SizedListScroll.gif) |
+### FixedListScroll
 
-| 自動計測するリスト | 固定サイズのグリッド |
-| --- | --- |
-| ![LazyLayoutListScrollのデモ](media/AutoLayoutListScroll.gif) | ![FixedGridScrollのデモ](media/FixedGridScroll.gif) |
+![](docs/images/FixedListScroll.gif)
 
-| カルーセル | カルーセル（ループ） |
-| --- | --- |
-| ![LazyLayoutListScrollのデモ](media/CarouselScroll.gif) | ![SimpleScrollのループカルーセル](media/CarouselScrollLoop.gif) |
+### SizedListScroll
+
+![](docs/images/SizedListScroll.gif)
+
+### FixedGridScroll
+
+![](docs/images/FixedGridScroll.gif)
+
+### LazyLayoutListScroll
+
+![](docs/images/LazyLayoutListScroll.gif)
+
+### CarouselScroll
+
+![](docs/images/CarouselScroll.gif)
+
+### CarouselScroll loop
+
+![](docs/images/CarouselScroll loop.gif)
 
 ## ライセンス
 

@@ -1,12 +1,10 @@
-![SimpleScroll — Lists, Grids, and Carousels for Unity uGUI](media/SimpleScroll-banner.png)
+![SimpleScroll — Lists, Grids, and Carousels for Unity uGUI](docs/images/SimpleScroll-banner.png)
 
 **Virtualized lists, grids, and carousels for Unity uGUI.**
 
 Choose a component for your layout, provide the data, and let SimpleScroll reuse the cells as you scroll.
 
-[日本語](README.ja.md) · [Installation](#installation) · [Quick start](#quick-start) · [Samples](#samples)
-
-![Looping carousel with SimpleScroll](media/CarouselScrollLoop.gif)
+[日本語](README.ja.md) · [Installation](#installation) · [Quick start](#quick-start) · [Demos](#demos)
 
 ## Why SimpleScroll?
 
@@ -36,12 +34,6 @@ In Unity's Package Manager, choose **Add package from git URL** and enter:
 ```text
 https://github.com/kurobon-jp/SimpleScroll.git?path=Assets/
 ```
-
-### Samples
-
-Select SimpleScroll in Package Manager and import **SimpleScroll Sample** from the Samples section. Open a demo scene to explore the hierarchy, Inspector settings, and data binding.
-
-The main examples are in [Samples~/Scripts](Assets/Samples~/Scripts) and [Samples~/Scenes](Assets/Samples~/Scenes).
 
 ## Quick start
 
@@ -99,9 +91,26 @@ _scroll.Refresh();
 _scroll.SetPositionIndex(20, anchor: 0.5f, smooth: true);
 ```
 
-For lists, `anchor` specifies alignment within the viewport: `0` for the start, `0.5` for the center, and `1` for the end. The target is constrained by the available scroll range. `FixedGridScroll` calls this parameter `pivot`.
+For lists, `anchor` specifies alignment within the viewport: `0` for the start, `0.5` for the center, and `1` for the end. The target is constrained by the available scroll range.
 
 To refresh at a normalized position, use `Refresh(0f)` for the start or `Refresh(1f)` for the end. Call `Refresh()` before navigating after a data change so size and offset information is up to date.
+
+#### Refresh parameters
+
+```csharp
+void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
+```
+
+Recalculate the layout and move to the specified normalized position.
+
+| Parameter | Description |
+| --- | --- |
+| `normalizedPosition` | Position within the available scroll range (`0`–`1`): `0` is the start and `1` is the end. |
+| `isRefreshVisibleCells` | When `true` (the default), also rebind data to visible cells. When `false`, keep visible cells and recalculate the layout. Use `true` if their displayed content has changed. |
+
+Use `Refresh(bool isRefreshVisibleCells = true)` to update without specifying a normalized position.
+
+`LazyLayoutListScroll` calculates the total length using estimated sizes for unmeasured cells. For `normalizedPosition` values other than `0` and `1`, the resulting position may differ from the position obtained after measuring all cells. Use `SetPositionIndex` when you want to navigate to a specific item.
 
 ## Data sources and cell reuse
 
@@ -138,19 +147,90 @@ When looping, the position index can be negative or exceed the data count. Use `
 
 `LazyLayoutListScroll` starts with estimated sizes and measures cells as they appear. The content length and scrollbar can change as estimates are replaced by actual sizes. Measurement requires layout rebuilds and offset recalculation; prefer `SizedListScroll` when you already know the sizes.
 
-## In action
+## Component parameters
 
-| Fixed-size list | Variable-size list |
-| --- | --- |
-| ![FixedListScroll demo](media/FixedListScroll.gif) | ![SizedListScroll demo](media/SizedListScroll.gif) |
+These tables describe the Inspector fields. Sizes and spacing use RectTransform local coordinate units.
 
-| Measured layout | Fixed-size grid |
-| --- | --- |
-| ![LazyLayoutListScroll demo](media/AutoLayoutListScroll.gif) | ![FixedGridScroll demo](media/FixedGridScroll.gif) |
+### Common settings
 
-| Carousel | Carousel loop |
+| Parameter | Description |
 | --- | --- |
-| ![CarouselScroll demo](media/CarouselScroll.gif) | ![SimpleScroll loop demo](media/CarouselScrollLoop.gif) |
+| **Axis** | Select `Horizontal` or `Vertical`. |
+| **Viewport** | The visible area's RectTransform. If unassigned, the component uses its own RectTransform. |
+| **Content** | The parent RectTransform for cells. Assign a child of the viewport. |
+| **Scrollable** | Accept scroll input, such as the mouse wheel. |
+| **Scrolling / Scroll Sensitivity** | Movement per scroll input. Higher values increase movement; for carousels, this affects how many items are advanced. |
+| **Draggable** | Accept pointer dragging. |
+| **Dragging / Inertia** | Enable inertial movement after releasing a drag. |
+| **Dragging / Deceleration** | Inertia deceleration (px/sec²). Higher values stop movement over a shorter distance. Default: `10000`. |
+| **Dragging / Max Velocity** | Maximum inertia speed (px/sec). Default: `10000`. |
+| **Dragging / Drag Sensitivity** | Drag movement multiplier (`0.1`–`1`). At `1`, movement matches the pointer. |
+| **Dragging / Over Scroll** | Allow movement beyond the ends of the scroll range. |
+| **On Value Changed** | Event reporting changes in scroll position. The value is a signed scroll coordinate, rather than a normalized position: negative from the start horizontally, positive vertically. |
+
+### Shared list and grid settings
+
+| Parameter | Description |
+| --- | --- |
+| **Content Padding / Start, End** | Padding before and after the cells along the scroll axis: top/bottom vertically, left/right horizontally. |
+| **Space** | Gap between cells. Lists use a single value along the scroll axis; grids use `X` (horizontal) and `Y` (vertical). |
+| **Scrollbar** | Optional uGUI Scrollbar. Its value and handle size are synchronized, and its GameObject is hidden when scrolling is unnecessary. Match its direction to the scroll axis, with value `0` at the start. |
+
+### FixedListScroll
+
+| Parameter | Description |
+| --- | --- |
+| **Cell Size** | Shared cell size along the scroll axis, excluding spacing. Match the prefab's size to this value. |
+
+### LazyLayoutListScroll
+
+| Parameter | Description |
+| --- | --- |
+| **Estimated Cell Size** | Estimated size along the scroll axis for unmeasured cells. Default: `100`. A value close to actual cell sizes reduces changes in content length and scrollbar size after measurement. Excludes spacing. |
+
+### FixedGridScroll
+
+| Parameter | Description |
+| --- | --- |
+| **Cell Size / X, Y** | Shared cell width and height, excluding spacing. Match the prefab's size to these values. |
+| **Column** | Number of cells across the scroll axis: columns for vertical scrolling, rows for horizontal scrolling. Set to at least `1`. |
+
+### CarouselScroll
+
+| Parameter | Description |
+| --- | --- |
+| **Cell Size** | Shared cell size along the scroll axis. Match the prefab's size to this value. |
+| **Space** | Gap along the scroll axis. The distance between cell centers is `Cell Size + Space`. |
+| **Loop** | Enable wrapping from the last item to the first and vice versa. When disabled, movement stops at the first and last cells. |
+| **Indicator** | Optional uGUI Toggle template. A copy is created for each data item under the same parent, and `isOn` marks the selected item. The original template is hidden. |
+
+Carousels use center snapping and do not use Content Padding. Keep cell sizes positive, and ensure `Cell Size + Space` is also positive.
+
+## Demos
+
+### FixedListScroll
+
+![](docs/images/FixedListScroll.gif)
+
+### SizedListScroll
+
+![](docs/images/SizedListScroll.gif)
+
+### FixedGridScroll
+
+![](docs/images/FixedGridScroll.gif)
+
+### LazyLayoutListScroll
+
+![](docs/images/LazyLayoutListScroll.gif)
+
+### CarouselScroll
+
+![](docs/images/CarouselScroll.gif)
+
+### CarouselScroll loop
+
+![](docs/images/CarouselScroll loop.gif)
 
 ## License
 

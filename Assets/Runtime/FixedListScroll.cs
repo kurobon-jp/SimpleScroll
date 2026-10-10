@@ -124,7 +124,8 @@ namespace SimpleScroll
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
-            var position = GetAlignedScrollPosition(CellStride * positionIndex, CellStride, Mathf.Clamp01(anchor));
+            var offset = CellStride * positionIndex + _contentPadding.Start;
+            var position = GetAlignedScrollPosition(offset, _cellSize, Mathf.Clamp01(anchor));
             SetScrollPosition(position, smooth);
         }
         

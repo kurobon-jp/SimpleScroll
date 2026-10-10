@@ -71,6 +71,29 @@ namespace SimpleScroll.Tests
             if (_prefab != null) Object.DestroyImmediate(_prefab);
         }
 
+        [TestCase(0, 0f, -100f)]
+        [TestCase(0, 0.5f, 0f)]
+        [TestCase(0, 1f, 100f)]
+        [TestCase(1, 0f, 100f)]
+        [TestCase(1, 0.5f, 0f)]
+        [TestCase(1, 1f, -100f)]
+        public void FixedList_SpacingAndPaddingDoNotShiftCellAlignment(int axis, float anchor, float expectedCenter)
+        {
+            var scroll = Create<FixedListScroll>(axis);
+            scroll.Space = 20f;
+            var padding = new ContentPadding();
+            var boxed = (object)padding;
+            typeof(ContentPadding).GetField("_start", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxed, 35f);
+            scroll.ContentPadding = (ContentPadding)boxed;
+            var source = new Source { Prefab = _prefab };
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.SetPositionIndex(10, anchor, false);
+            Tick(scroll);
+            Assert.That(source.Cells[10].transform.localPosition[axis] + _content.localPosition[axis],
+                Is.EqualTo(expectedCenter).Within(0.001f));
+        }
+
         [TestCase(0, -200f)]
         [TestCase(1, 200f)]
         public void FixedList_AlignsCellCenterWithViewportCenter(int axis, float expectedPosition)
@@ -84,6 +107,28 @@ namespace SimpleScroll.Tests
             Assert.That(scroll.ScrollPosition, Is.EqualTo(expectedPosition).Within(0.001f));
             Assert.That(source.Cells[3].transform.localPosition[axis] + _content.localPosition[axis],
                 Is.EqualTo(0f).Within(0.001f));
+        }
+
+        [TestCase(0, 0f, -100f)]
+        [TestCase(0, 0.5f, 0f)]
+        [TestCase(0, 1f, 100f)]
+        [TestCase(1, 0f, 100f)]
+        [TestCase(1, 0.5f, 0f)]
+        [TestCase(1, 1f, -100f)]
+        public void Grid_SpacingAndPaddingDoNotShiftCellAlignment(int axis, float anchor, float expectedCenter)
+        {
+            var scroll = Create<FixedGridScroll>(axis);
+            scroll.Space = new Vector2(20f, 20f);
+            var boxed = (object)new ContentPadding();
+            typeof(ContentPadding).GetField("_start", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxed, 35f);
+            scroll.ContentPadding = (ContentPadding)boxed;
+            var source = new Source { Prefab = _prefab };
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.SetPositionIndex(30, anchor, false);
+            Tick(scroll);
+            Assert.That(source.Cells[30].transform.localPosition[axis] + _content.localPosition[axis],
+                Is.EqualTo(expectedCenter).Within(0.001f));
         }
 
         [TestCase(0)]
