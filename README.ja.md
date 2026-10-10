@@ -230,7 +230,7 @@ Inspectorに表示される項目の説明です。サイズと余白はRectTran
 
 ### CarouselScroll loop
 
-![](docs/images/CarouselScroll loop.gif)
+![](docs/images/CarouselScroll_loop.gif)
 
 ## ライセンス
 

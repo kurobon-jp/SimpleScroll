@@ -230,7 +230,7 @@ Carousels use center snapping and do not use Content Padding. Keep cell sizes po
 
 ### CarouselScroll loop
 
-![](docs/images/CarouselScroll loop.gif)
+![](docs/images/CarouselScroll_loop.gif)
 
 ## License
 
