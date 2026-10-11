@@ -52,7 +52,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         shell: bash
         run: |
-          if [[ -z "$UNITY_EMAIL" || -z "$UNITY_PASSWORD" || ( -z "$UNITY_LICENSE" && -z "$UNITY_SERIAL" ) ]]; then
+          if [[ -n "$UNITY_LICENSE" || ( -n "$UNITY_EMAIL" && -n "$UNITY_PASSWORD" ) ]]; then
             echo '::error::Configure UNITY_EMAIL, UNITY_PASSWORD, and UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro) in repository secrets. See .github/unity/README.md.'
             exit 1
           fi
