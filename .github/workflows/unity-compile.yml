@@ -53,7 +53,9 @@ jobs:
         shell: bash
         run: |
           if [[ -n "$UNITY_LICENSE" || ( -n "$UNITY_EMAIL" && -n "$UNITY_PASSWORD" ) ]]; then
-            echo '::error::Configure UNITY_EMAIL, UNITY_PASSWORD, and UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro) in repository secrets. See .github/unity/README.md.'
+            echo "Unity activation configuration is available."
+          else
+            echo "::error::Unity activation secrets are unavailable. Configure UNITY_LICENSE or both UNITY_EMAIL and UNITY_PASSWORD in repository Settings > Secrets and variables > Actions."
             exit 1
           fi
 
