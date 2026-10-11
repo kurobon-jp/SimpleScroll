@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 concurrency:
   group: unity-compile-${{ github.workflow }}-${{ github.ref }}
@@ -62,7 +63,7 @@ jobs:
         run: python3 .github/unity/prepare_project.py '${{ matrix.unity }}'
 
       - name: Compile package and imported samples
-        uses: game-ci/unity-builder@v4
+        uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
@@ -71,10 +72,10 @@ jobs:
         with:
           projectPath: Temp/unity-compile
           unityVersion: ${{ matrix.unity }}
-          customImage: unityci/editor:ubuntu-${{ matrix.unity }}-base-3
-          targetPlatform: StandaloneLinux64
-          buildMethod: SimpleScrollCI.CompilationCheck.Run
-          versioning: None
+          testMode: EditMode
+          coverageEnabled: false
+          checkName: Compilation / Unity ${{ matrix.unity }}
+          artifactsPath: artifacts
 
       - name: Upload compilation diagnostics
         if: always()
@@ -82,6 +83,7 @@ jobs:
         with:
           name: unity-compile-${{ matrix.unity }}
           path: |
+            artifacts/
             Temp/unity-compile/Logs/
             Temp/unity-compile/compile-success.txt
             Temp/unity-compile/Packages/manifest.json

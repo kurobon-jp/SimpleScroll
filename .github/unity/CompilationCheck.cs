@@ -1,17 +1,18 @@
 using System;
 using System.IO;
 using System.Linq;
-using UnityEditor;
+using NUnit.Framework;
 using UnityEngine;
 
 namespace SimpleScrollCI
 {
-    public static class CompilationCheck
+    public class CompilationCheck
     {
-        public static void Run()
+        [Test]
+        public void PackageAndSamplesAreCompiled()
         {
-            // Unity compiles scripts before executeMethod. Compile errors prevent
-            // this method from running and cause a nonzero batch-mode exit.
+            // Compilation errors prevent test discovery/execution. Explicitly
+            // check the expected assemblies to avoid an empty consumer passing.
             var loaded = AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetName().Name).ToArray();
             var required = new[]
@@ -22,8 +23,7 @@ namespace SimpleScrollCI
             };
             foreach (var name in required)
             {
-                if (!loaded.Contains(name))
-                    throw new InvalidOperationException("Missing compiled assembly: " + name);
+                Assert.That(loaded, Does.Contain(name), "Missing compiled assembly: " + name);
             }
 
             var message = "Unity " + Application.unityVersion + ": compiled " +
@@ -31,7 +31,6 @@ namespace SimpleScrollCI
             File.WriteAllText(Path.Combine(Application.dataPath, "..", "compile-success.txt"),
                 message + Environment.NewLine);
             Debug.Log(message);
-            EditorApplication.Exit(0);
         }
     }
 }

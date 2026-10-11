@@ -15,7 +15,7 @@ def prepare(version):
     project = root / "Temp" / "unity-compile"
     # Fail on reuse rather than silently keeping stale scripts or settings.
     project.mkdir(parents=True, exist_ok=False)
-    (project / "Assets" / "Editor").mkdir(parents=True)
+    (project / "Assets" / "Tests").mkdir(parents=True)
     (project / "Packages").mkdir()
     (project / "ProjectSettings").mkdir()
 
@@ -25,6 +25,7 @@ def prepare(version):
             # Local package paths are relative to the project's Packages folder.
             package["name"]: "file:../../../Assets",
             "com.unity.ugui": "2.0.0" if int(version.split(".")[0]) >= 6000 else "1.0.0",
+            "com.unity.test-framework": "1.1.33",
             "com.unity.modules.audio": "1.0.0",
             "com.unity.modules.imgui": "1.0.0",
             "com.unity.modules.ui": "1.0.0",
@@ -46,7 +47,19 @@ def prepare(version):
         shutil.copy2(source, target / source.name)
     shutil.copy2(
         root / ".github" / "unity" / "CompilationCheck.cs",
-        project / "Assets" / "Editor" / "CompilationCheck.cs",
+        project / "Assets" / "Tests" / "CompilationCheck.cs",
+    )
+    (project / "Assets" / "Tests" / "SimpleScrollCI.asmdef").write_text(
+        json.dumps({
+            "name": "SimpleScrollCI",
+            "references": [
+                "Unity.SimpleScroll", "Unity.SimpleScroll.Editor",
+                "Unity.SimpleScroll.Samples",
+            ],
+            "includePlatforms": ["Editor"],
+            "optionalUnityReferences": ["TestAssemblies"],
+            "autoReferenced": False,
+        }, indent=2) + "\n", encoding="utf-8"
     )
     print(f"Prepared {project} for Unity {version}")
 
