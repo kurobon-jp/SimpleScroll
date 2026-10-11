@@ -206,10 +206,6 @@ Inspectorに表示される項目の説明です。サイズと余白はRectTran
 
 カルーセルは中央へのスナップで配置するため、Content Paddingは使用しません。セルサイズは正の値にし、`Cell Size + Space`も正になるよう設定してください。
 
-## コンパイルチェック CI
-
-GitHub Actions で Unity 2022.1.25f1 のパッケージとサンプルスクリプトのコンパイルを確認します。実行には Unity ライセンス用の Repository Secrets が必要です。[設定方法と検証範囲](.github/unity/README.md)を参照してください。
-
 ## デモ
 
 ### FixedListScroll

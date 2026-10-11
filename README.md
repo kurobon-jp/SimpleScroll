@@ -29,8 +29,6 @@ Use `FixedListScroll` when all rows share a size. Use `SizedListScroll` when siz
 
 The package declares Unity **2022.1** as its minimum version. It uses **uGUI**; ensure Unity UI is installed in your project.
 
-GitHub Actions is configured to compile the package and sample scripts on Unity 2022.1.25f1. See [CI setup and coverage](.github/unity/README.md) for the required license secrets.
-
 In Unity's Package Manager, choose **Add package from git URL** and enter:
 
 ```text
