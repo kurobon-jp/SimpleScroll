@@ -1,11 +1,6 @@
 name: Unity compilation
 
 on:
-  push:
-    paths:
-      - 'Assets/**'
-      - '.github/workflows/unity-compile.yml'
-      - '.github/unity/**'
   pull_request:
     paths:
       - 'Assets/**'
