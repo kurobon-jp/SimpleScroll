@@ -1,11 +1,7 @@
-name: Unity compilation
+name: Unity 2022.1 compilation
 
 on:
   pull_request:
-    paths:
-      - 'Assets/**'
-      - '.github/workflows/unity-compile.yml'
-      - '.github/unity/**'
   workflow_dispatch:
 
 permissions:
@@ -13,39 +9,22 @@ permissions:
   checks: write
 
 concurrency:
-  group: unity-compile-${{ github.workflow }}-${{ github.ref }}
+  group: unity-compile-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   compile:
-    name: Compile / Unity ${{ matrix.unity }}
-    # Fork PRs cannot access the license secrets. Check them on a trusted branch.
+    name: Compile / Unity 2022.1.25f1
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      # Avoid activating the same account in many containers simultaneously.
-      max-parallel: 1
-      matrix:
-        unity:
-          - '2022.1.25f1'
-          # - '2022.2.21f1'
-          # - '2022.3.62f1'
-          # - '2023.1.20f1'
-          # - '2023.2.20f1'
-          # - '6000.0.40f1'
-          # - '6000.1.0f1'
-          # - '6000.2.0f1'
-          # - '6000.3.0f1'
-          # - '6000.4.0f1'
-
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          persist-credentials: false
+          python-version: '3.x'
 
-      - name: Check license configuration
+      - name: Check Unity activation configuration
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -55,37 +34,35 @@ jobs:
           if [[ -n "$UNITY_LICENSE" || ( -n "$UNITY_EMAIL" && -n "$UNITY_PASSWORD" ) ]]; then
             echo "Unity activation configuration is available."
           else
-            echo "::error::Unity activation secrets are unavailable. Configure UNITY_LICENSE or both UNITY_EMAIL and UNITY_PASSWORD in repository Settings > Secrets and variables > Actions."
+            echo "::error::Configure UNITY_LICENSE or both UNITY_EMAIL and UNITY_PASSWORD in repository Actions secrets."
             exit 1
           fi
 
-      - name: Create package consumer project
-        run: python3 .github/unity/prepare_project.py '${{ matrix.unity }}'
+      - name: Create isolated consumer
+        run: python .github/unity/prepare_project.py 2022.1.25f1
 
-      - name: Compile package and imported samples
+      - name: Compile package and sample assemblies
         uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           projectPath: Temp/unity-compile
-          unityVersion: ${{ matrix.unity }}
+          unityVersion: 2022.1.25f1
           testMode: EditMode
-          checkName: Compilation / Unity ${{ matrix.unity }}
+          checkName: Compilation / Unity 2022.1.25f1
           artifactsPath: artifacts
 
-      - name: Upload compilation diagnostics
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: unity-compile-${{ matrix.unity }}
+          name: unity-compile-2022.1.25f1
           path: |
             artifacts/
-            Temp/unity-compile/Logs/
             Temp/unity-compile/compile-success.txt
             Temp/unity-compile/Packages/manifest.json
             Temp/unity-compile/Packages/packages-lock.json
           if-no-files-found: ignore
-          retention-days: 7

@@ -1,34 +1,36 @@
 # Unity compilation CI
 
-`unity-compile.yml` runs on package changes in pushes and same-repository pull
-requests, and can be started manually from Actions. Fork pull requests are
+`unity-compile.yml` runs on same-repository pull requests,
+and can be started manually from Actions. Fork pull requests are
 skipped because GitHub does not provide license secrets to them; run their
-changes on a trusted branch after review.
+changes manually on a trusted branch after review.
 
-The matrix pins one patch per release series: 2022.1, 2022.2, 2022.3, 2023.1,
-2023.2, and Unity 6.0–6.4. It does not test every patch or future releases.
-To extend coverage, add an exact stable editor version to the matrix and verify
-that `unityci/editor:ubuntu-<version>-base-3` exists on Docker Hub.
+The workflow checks Unity 2022.1.25f1 only. There is no version or variant matrix.
 
 Each job creates a fresh project under `Temp/unity-compile`, installs `Assets/`
 as a local UPM package, and imports the sample scripts. uGUI is pinned to 1.0.0
 for Unity 2022/2023 and 2.0.0 for Unity 6. The development project's settings
 and dependencies are not used. Runtime, Editor, and sample assemblies must
 all compile and load before the job succeeds. This is an Editor compilation
-check, not a player build or a test run. NUnit test assemblies are excluded.
+check using a consumer EditMode test, not a player build. The consumer test
+verifies that the Runtime, Editor, and sample assemblies are loaded. The
+package's behavioral tests are excluded (the package is not in `testables`).
 
 ## One-time repository setup
 
-Follow [GameCI activation](https://game.ci/docs/github/activation/) and configure
-repository Actions secrets:
+The workflow uses `game-ci/unity-test-runner@v4`, matching the consumer workflow
+that successfully ran with only `UNITY_EMAIL` and `UNITY_PASSWORD`. Configure
+those two repository Actions secrets for that activation path.
 
-- Personal: `UNITY_LICENSE` (the contents of the `.ulf` file), `UNITY_EMAIL`,
-  and `UNITY_PASSWORD`.
-- Pro: `UNITY_SERIAL`, `UNITY_EMAIL`, and `UNITY_PASSWORD`.
+Existing `UNITY_LICENSE` or `UNITY_SERIAL` secrets are also forwarded when
+configured. See [GameCI activation](https://game.ci/docs/github/activation/)
+for those activation methods. The preflight accepts `UNITY_LICENSE` or both
+`UNITY_EMAIL` and `UNITY_PASSWORD`; it only checks configuration presence,
+and does not prove that Unity activation will succeed for every editor version.
 
-Jobs run sequentially to limit simultaneous license activations. GameCI
-activates and returns the license. Missing credentials fail explicitly.
-GitHub Actions logs contain the compiler output; artifacts retain the resolved
+GameCI activates and returns the license. Missing credentials fail explicitly.
+GitHub Actions logs contain the compiler output; artifacts retain test results,
+test-runner logs, the resolved
 package manifest, lockfile, project logs when present, and success marker.
 
 ## Local preparation check
