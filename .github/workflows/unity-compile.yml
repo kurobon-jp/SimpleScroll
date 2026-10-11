@@ -1,0 +1,94 @@
+name: Unity compilation
+
+on:
+  push:
+    paths:
+      - 'Assets/**'
+      - '.github/workflows/unity-compile.yml'
+      - '.github/unity/**'
+  pull_request:
+    paths:
+      - 'Assets/**'
+      - '.github/workflows/unity-compile.yml'
+      - '.github/unity/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-compile-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile / Unity ${{ matrix.unity }}
+    # Fork PRs cannot access the license secrets. Check them on a trusted branch.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # Avoid activating the same account in many containers simultaneously.
+      max-parallel: 1
+      matrix:
+        unity:
+          - '2022.1.25f1'
+          - '2022.2.21f1'
+          - '2022.3.62f1'
+          - '2023.1.20f1'
+          - '2023.2.20f1'
+          - '6000.0.40f1'
+          - '6000.1.0f1'
+          - '6000.2.0f1'
+          - '6000.3.0f1'
+          - '6000.4.0f1'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check license configuration
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        shell: bash
+        run: |
+          if [[ -z "$UNITY_EMAIL" || -z "$UNITY_PASSWORD" || ( -z "$UNITY_LICENSE" && -z "$UNITY_SERIAL" ) ]]; then
+            echo '::error::Configure UNITY_EMAIL, UNITY_PASSWORD, and UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro) in repository secrets. See .github/unity/README.md.'
+            exit 1
+          fi
+
+      - name: Create package consumer project
+        run: python3 .github/unity/prepare_project.py '${{ matrix.unity }}'
+
+      - name: Compile package and imported samples
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: Temp/unity-compile
+          unityVersion: ${{ matrix.unity }}
+          customImage: unityci/editor:ubuntu-${{ matrix.unity }}-base-3
+          targetPlatform: StandaloneLinux64
+          buildMethod: SimpleScrollCI.CompilationCheck.Run
+          versioning: None
+
+      - name: Upload compilation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-compile-${{ matrix.unity }}
+          path: |
+            Temp/unity-compile/Logs/
+            Temp/unity-compile/compile-success.txt
+            Temp/unity-compile/Packages/manifest.json
+            Temp/unity-compile/Packages/packages-lock.json
+          if-no-files-found: ignore
+          retention-days: 7

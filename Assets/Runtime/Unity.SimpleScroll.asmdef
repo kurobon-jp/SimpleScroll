@@ -1,7 +1,7 @@
 {
     "name": "Unity.SimpleScroll",
     "rootNamespace": "SimpleScroll",
-    "references": [],
+    "references": ["UnityEngine.UI"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
