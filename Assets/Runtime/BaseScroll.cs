@@ -8,7 +8,6 @@ using UnityEngine.UI;
 
 namespace SimpleScroll
 {
-    hoge
     [RequireComponent(typeof(RectTransform))]
     public abstract class BaseScroll<TDataSource> : UIBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
         IScrollbarEventListener,
