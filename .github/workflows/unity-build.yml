@@ -70,7 +70,7 @@ jobs:
         with:
           unityVersion: ${{ env.UNITY_VERSION }}
           targetPlatform: StandaloneWindows64
-          buildMethod: SimpleScrollCI.PlayerScriptCompiler.CompileWindows
+          buildMethod: UnityPlayerCompilation.PlayerScriptCompiler.CompileWindows
           versioning: None
           allowDirtyBuild: true
 

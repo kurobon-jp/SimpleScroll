@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEditor.Build.Player;
 using UnityEngine;
 
-namespace SimpleScrollCI
+namespace UnityPlayerCompilation
 {
     public static class PlayerScriptCompiler
     {
