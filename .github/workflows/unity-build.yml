@@ -1,4 +1,4 @@
-name: Unity Build
+name: Unity tests and Player script compilation
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 env:
+  UNITY_VERSION: '2022.3.43f1'
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
@@ -26,14 +27,14 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: Library
-          key: Library-test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-test-${{ env.UNITY_VERSION }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
-            Library-test-
+            Library-test-${{ env.UNITY_VERSION }}-
 
       - uses: game-ci/unity-test-runner@v4
         id: tests
         with:
-          unityVersion: 2022.3.43f1
+          unityVersion: ${{ env.UNITY_VERSION }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           testMode: all
 
@@ -43,16 +44,10 @@ jobs:
           name: Test results
           path: ${{ steps.tests.outputs.artifactsPath }}
 
-  build:
-    name: Build (${{ matrix.targetPlatform }})
+  compile-player:
+    name: Compile Player scripts (Windows)
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - StandaloneWindows64
-          - StandaloneLinux64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,17 +56,25 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: Library
-          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-player-windows-${{ env.UNITY_VERSION }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
-            Library-${{ matrix.targetPlatform }}-
-            Library-
+            Library-player-windows-${{ env.UNITY_VERSION }}-
+
+      - name: Install CI compilation entry point
+        shell: bash
+        run: |
+          mkdir -p Assets/Editor/CI
+          cp .github/unity/PlayerScriptCompiler.cs Assets/Editor/CI/PlayerScriptCompiler.cs
 
       - uses: game-ci/unity-builder@v6
         with:
-          unityVersion: 2022.3.43f1
-          targetPlatform: ${{ matrix.targetPlatform }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: StandaloneWindows64
+          buildMethod: SimpleScrollCI.PlayerScriptCompiler.CompileWindows
+          versioning: None
+          allowDirtyBuild: true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: Player-scripts-Windows
+          path: Temp/PlayerScripts/StandaloneWindows64
