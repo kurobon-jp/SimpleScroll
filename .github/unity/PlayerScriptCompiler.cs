@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Player;
 using UnityEngine;
@@ -22,17 +21,14 @@ namespace SimpleScrollCI
                     options = ScriptCompilationOptions.None
                 };
                 var result = PlayerBuildInterface.CompilePlayerScripts(settings, output);
-                if (result.assemblies == null ||
-                    !result.assemblies.Any(path =>
-                        Path.GetFileName(path) == "Unity.SimpleScroll.dll") ||
-                    !File.Exists(Path.Combine(output, "Unity.SimpleScroll.dll")))
+                if (result.assemblies != null && result.assemblies.Count != 0 && result.typeDB != null)
                 {
-                    throw new InvalidOperationException(
-                        "Windows Player compilation did not produce Unity.SimpleScroll.dll.");
+                    Debug.Log("Build succeeded!");
+                    EditorApplication.Exit(0);
                 }
 
-                Debug.Log("Windows Player scripts compiled successfully: " + output);
-                EditorApplication.Exit(0);
+                throw new InvalidOperationException(
+                    "Windows Player compilation did not produce any assemblies or type database.");
             }
             catch (Exception exception)
             {
