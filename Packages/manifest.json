@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "com.unity.ide.rider": "3.0.38",
-    "com.unity.ugui": "2.0.0",
+    "com.unity.ugui": "1.0.0",
+    "com.unity.test-framework": "1.0.0",
     "com.unity.modules.audio": "1.0.0",
     "com.unity.modules.imgui": "1.0.0",
     "com.unity.modules.ui": "1.0.0",
