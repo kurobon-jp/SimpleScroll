@@ -30,6 +30,7 @@ jobs:
       - uses: game-ci/unity-test-runner@v4
         id: tests
         with:
+          unityVersion: 2022.3.43f1
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           testMode: all
 
