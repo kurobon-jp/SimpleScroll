@@ -4,6 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Samples/Scenes/FixedListScrollDemo.unity
+    guid: 6e2a5de3b957f0f44b960f0b08f9b303
   m_configObjects: {}
-  m_UseUCBPForAssetBundles: 0
