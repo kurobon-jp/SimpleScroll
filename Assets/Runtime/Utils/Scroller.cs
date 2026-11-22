@@ -164,7 +164,6 @@ namespace SimpleScroll
             else
             {
                 ScrollPosition = _targetPosition;
-                _targetPosition = ScrollPosition;
             }
         }
 
@@ -260,8 +259,7 @@ namespace SimpleScroll
             }
             else
             {
-                ScrollPosition = _targetPosition;
-                Stop();
+                MoveTo(_targetPosition, false);
             }
 
             return ScrollPosition - previousPosition;

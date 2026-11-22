@@ -48,6 +48,43 @@ namespace SimpleScroll.Tests
             Assert.That(Call("Update", 0.02f), Is.EqualTo(0f));
         }
 
+        [TestCase(0, false, false)]
+        [TestCase(1, false, false)]
+        [TestCase(0, false, true)]
+        [TestCase(1, false, true)]
+        [TestCase(0, true, false)]
+        [TestCase(1, true, false)]
+        [TestCase(0, true, true)]
+        [TestCase(1, true, true)]
+        public void CompletionListenerCanStartAnotherMovement(int axis, bool smooth, bool nextSmooth)
+        {
+            Create(axis);
+            Call("Initialize", 2000f);
+            var direction = axis == 0 ? -1f : 1f;
+            var destination = 800f * direction;
+            var nextDestination = 1200f * direction;
+            var notifications = 0;
+            var changed = new ScrollEvent();
+            ScrollerType.GetField("_onValueChanged", InternalInstance).SetValue(_scroller, changed);
+            changed.AddListener(value =>
+            {
+                if (value != destination) return;
+                notifications++;
+                Assert.That(Get("State"), Is.EqualTo(ScrollState.Idle), "Completion must be finalized before notification.");
+                Assert.That(Get("TargetPosition"), Is.EqualTo(destination));
+                Call("MoveTo", nextDestination, nextSmooth);
+            });
+            Call("MoveTo", destination, smooth);
+            for (var frame = 0; frame < 1000 && notifications == 0; frame++) Call("Update", 0.02f);
+            Assert.That(notifications, Is.EqualTo(1));
+            Assert.That(Get("TargetPosition"), Is.EqualTo(nextDestination), "The listener's destination must survive notification.");
+            Assert.That(Get("State"), Is.EqualTo(nextSmooth ? ScrollState.Snapping : ScrollState.Idle));
+            Assert.That(Get("ScrollPosition"), Is.EqualTo(nextSmooth ? destination : nextDestination));
+            for (var frame = 0; frame < 1000 && !(bool)Get("IsIdling"); frame++) Call("Update", 0.02f);
+            Assert.That(Get("ScrollPosition"), Is.EqualTo(nextDestination));
+            Assert.That(Get("State"), Is.EqualTo(ScrollState.Idle));
+        }
+
         [TestCase(0)]
         [TestCase(1)]
         public void LayoutShiftPreservesDistanceToTarget(int axis)
