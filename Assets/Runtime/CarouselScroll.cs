@@ -16,7 +16,6 @@ namespace SimpleScroll
 
         private int _cellCount;
         private int _positionIndex;
-        private float _targetPosition;
         private float _scrollDelta;
 
         private float CellStride => _cellSize + _space;
@@ -70,14 +69,13 @@ namespace SimpleScroll
 
         protected override void OnDrag(float targetPosition)
         {
-            _targetPosition = targetPosition;
             var scrollPos = Scroller.ScrollPosition;
             var velocity = Scroller.Velocity;
             var positionIndex = Mathf.RoundToInt(ToScrollOffset(scrollPos) / CellStride);
             if (Scroller.IsInertia)
             {
                 positionIndex = Mathf.RoundToInt(ToScrollOffset(targetPosition) / CellStride);
-                _targetPosition = ToScrollPosition(positionIndex * CellStride);
+                targetPosition = ToScrollPosition(positionIndex * CellStride);
             }
             else if (positionIndex == _positionIndex && Mathf.Abs(velocity) >= 10f)
             {
@@ -85,6 +83,7 @@ namespace SimpleScroll
             }
 
             SetPositionIndex(positionIndex, true, false);
+            Scroller.SetTargetPosition(targetPosition);
         }
 
         protected override void OnScroll(float scrollDelta)
@@ -97,6 +96,7 @@ namespace SimpleScroll
 
             _scrollDelta += scrollDelta * Scroller.ScrollSensitivity * 0.01f;
             SetPositionIndex(_positionIndex - (int)_scrollDelta);
+            Scroller.MoveTo(ToScrollPosition(_positionIndex * CellStride), true);
             _scrollDelta %= 1f;
         }
 
@@ -161,14 +161,14 @@ namespace SimpleScroll
             return visibleRange;
         }
 
-        private void LateUpdate()
+        protected override void LateUpdate()
         {
             if (Scroller.IsIdling || Scroller.IsSnapping)
             {
-                _targetPosition = ToScrollPosition(_positionIndex * CellStride);
+                Scroller.SetTargetPosition(ToScrollPosition(_positionIndex * CellStride));
             }
 
-            UpdatePosition(_targetPosition);
+            UpdatePosition();
         }
 
         public void Next() => SetPositionIndex(_positionIndex + 1);
@@ -196,12 +196,12 @@ namespace SimpleScroll
             OnSelected?.Invoke(positionIndex);
             if (!smooth)
             {
-                Scroller.ScrollPosition = ToScrollPosition(positionIndex * CellStride);
+                Scroller.MoveTo(ToScrollPosition(positionIndex * CellStride), false);
                 StopScroll();
             }
             else if (snap)
             {
-                Scroller.OnSnap();
+                Scroller.MoveTo(ToScrollPosition(positionIndex * CellStride), true);
             }
         }
 

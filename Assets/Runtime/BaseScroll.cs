@@ -89,6 +89,9 @@ namespace SimpleScroll
 
         protected override void OnDisable()
         {
+            OnScrollInterrupted();
+            Scroller.Stop();
+            _pointerId = int.MinValue;
             if (_scrollbarEventDetector == null) return;
             Destroy(_scrollbarEventDetector);
             _scrollbarEventDetector = null;
@@ -150,7 +153,12 @@ namespace SimpleScroll
             SetNormalizedPosition(normalizedPosition);
         }
 
-        protected void UpdatePosition(float targetPosition)
+        protected virtual void LateUpdate()
+        {
+            UpdatePosition();
+        }
+
+        protected void UpdatePosition()
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
@@ -161,9 +169,15 @@ namespace SimpleScroll
                 _isDirty = false;
             }
 
-            var scrollDelta = Scroller.Update(targetPosition);
-            UpdateScrollbar();
+            if (dataCount == 0)
+            {
+                OnScrollInterrupted();
+                Scroller.MoveTo(0f, false);
+            }
+            PrepareScroll();
+            var scrollDelta = Scroller.Update(Time.unscaledDeltaTime);
             var visibleRange = Reposition(scrollDelta, _isResized);
+            UpdateScrollbar();
             _isResized = false;
             if (!VisibleRange.Equals(visibleRange))
             {
@@ -174,8 +188,16 @@ namespace SimpleScroll
             Scroller.NotifyScrollStateChanged();
         }
 
+        [Obsolete("Use MoveToPosition(position, smooth) to start movement and UpdatePosition() to update it.")]
+        protected void UpdatePosition(float targetPosition)
+        {
+            Scroller.SetTargetPosition(targetPosition);
+            UpdatePosition();
+        }
+
         private void SetNormalizedPosition(float normalizedPosition)
         {
+            OnScrollInterrupted();
             Scroller.NormalizedPosition = normalizedPosition;
             OnNormalizePositionChanged(Scroller.NormalizedPosition);
         }
@@ -185,6 +207,7 @@ namespace SimpleScroll
             if (DataSource == null || _pointerId != int.MinValue || !IsDraggable) return;
             if (!Scroller.OverScroll && Scroller.ScrollSize <= 0f) return;
             _pointerId = e.pointerId;
+            OnScrollInterrupted();
             Scroller.OnBeginDrag(e);
         }
 
@@ -198,7 +221,11 @@ namespace SimpleScroll
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            if (!IsDraggable) return;
+            if (!IsDraggable)
+            {
+                StopScroll();
+                return;
+            }
             var targetPosition = Scroller.OnEndDrag(e);
             OnDrag(targetPosition);
         }
@@ -215,7 +242,7 @@ namespace SimpleScroll
                 if (normalizedPosition <= 0f && axialValue > 0f || normalizedPosition >= 1f && axialValue < 0f) return;
             }
 
-            Scroller.OnSnap();
+            OnScrollInterrupted();
             OnScroll(axialValue);
         }
 
@@ -226,14 +253,36 @@ namespace SimpleScroll
 
         void IScrollbarEventListener.OnScrollbarHandling(bool isHandled)
         {
-            Scroller.State = isHandled ? ScrollState.Dragging : ScrollState.Idle;
+            OnScrollInterrupted();
+            Scroller.Stop();
+            if (isHandled) Scroller.State = ScrollState.Dragging;
         }
 
         protected abstract float GetScrollSize();
         protected abstract Range Reposition(float scrollDelta, bool isResized);
-        protected abstract void OnDrag(float targetPosition);
-        protected abstract void OnScroll(float delta);
-        protected abstract void OnStopScroll(float velocity);
+        protected virtual void OnDrag(float targetPosition)
+        {
+            Scroller.SetTargetPosition(targetPosition);
+        }
+
+        protected virtual void OnScroll(float delta)
+        {
+            Scroller.MoveTo(ScrollPosition + delta * Scroller.ScrollSensitivity, true);
+        }
+
+        protected virtual void OnStopScroll(float velocity) {}
+
+        // Cancel layout-specific tracking before another source takes control of movement.
+        protected virtual void OnScrollInterrupted() {}
+
+        protected virtual void PrepareScroll() {}
+
+        protected void MoveToPosition(float position, bool smooth)
+        {
+            _pointerId = int.MinValue;
+            OnScrollInterrupted();
+            Scroller.MoveTo(position, smooth);
+        }
 
         protected virtual void OnNormalizePositionChanged(float normalizedPosition)
         {
@@ -241,7 +290,9 @@ namespace SimpleScroll
 
         public void StopScroll()
         {
+            _pointerId = int.MinValue;
             var velocity = Scroller.Velocity;
+            OnScrollInterrupted();
             Scroller.Stop();
             OnStopScroll(velocity);
         }

@@ -3,6 +3,7 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
@@ -14,7 +15,7 @@ namespace SimpleScroll.Tests
         private GameObject _prefab;
         private RectTransform _content;
 
-        private sealed class Source : ISizedDataSource
+        private class Source : ISizedDataSource
         {
             public int Count = 100;
             public GameObject Prefab;
@@ -35,6 +36,193 @@ namespace SimpleScroll.Tests
                 Cells[index] = cell;
                 BindCount++;
             }
+        }
+
+        private sealed class LazySource : Source, ILazyLayoutDataSource
+        {
+            public float GetTotalContentSize(ContentPadding padding, float estimatedCellSize, float space)
+                => Count * 100f;
+            public int FindDataIndex(float position) => Mathf.Clamp(Mathf.FloorToInt(position / 100f), 0, Count - 1);
+            public float GetCellViewOffset(int index)
+            {
+                Assert.That(index, Is.InRange(0, Count - 1));
+                return index * 100f;
+            }
+            public void SetCellViewSize(int index, float size)
+            {
+                Assert.That(index, Is.InRange(0, Count - 1));
+            }
+        }
+
+        [TestCase(typeof(FixedListScroll), 0)]
+        [TestCase(typeof(FixedListScroll), 1)]
+        [TestCase(typeof(FixedGridScroll), 0)]
+        [TestCase(typeof(FixedGridScroll), 1)]
+        [TestCase(typeof(SizedListScroll), 0)]
+        [TestCase(typeof(SizedListScroll), 1)]
+        [TestCase(typeof(LazyLayoutListScroll), 0)]
+        [TestCase(typeof(LazyLayoutListScroll), 1)]
+        public void StopScroll_CancelsPendingTarget(System.Type scrollType, int axis)
+        {
+            var scroll = (Component)typeof(ScrollTests).GetMethod(nameof(Create), BindingFlags.Instance | BindingFlags.NonPublic)
+                .MakeGenericMethod(scrollType).Invoke(this, new object[] { axis });
+            Source source = scrollType == typeof(LazyLayoutListScroll) ? new LazySource() : new Source();
+            source.Prefab = _prefab;
+            scrollType.GetMethod("SetDataSource").Invoke(scroll, new object[] { source });
+            scrollType.GetMethod("Refresh", new[] { typeof(bool) }).Invoke(scroll, new object[] { true });
+            scrollType.GetMethod("SetPositionIndex").Invoke(scroll, new object[] { 10, 0.5f, true });
+            scrollType.GetMethod("StopScroll").Invoke(scroll, null);
+            var position = (float)scrollType.GetProperty("ScrollPosition").GetValue(scroll);
+            for (var i = 0; i < 3; i++)
+                scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(scroll, null);
+            Assert.That(scrollType.GetProperty("ScrollPosition").GetValue(scroll), Is.EqualTo(position));
+            Assert.That(scrollType.GetProperty("IsIdling").GetValue(scroll), Is.True);
+        }
+
+        [TestCase(0, 0, 1f)]
+        [TestCase(0, 9, 0f)]
+        [TestCase(1, 0, 1f)]
+        [TestCase(1, 9, 0f)]
+        public void LazyLayout_ClampedTargetFinishes(int axis, int index, float anchor)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            scroll.SetDataSource(new LazySource { Prefab = _prefab, Count = 10 });
+            Tick(scroll);
+            scroll.SetPositionIndex(index, anchor, false);
+            Tick(scroll);
+            Tick(scroll);
+            Assert.That(typeof(LazyLayoutListScroll).GetField("_targetIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll), Is.EqualTo(-1));
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(index == 0 ? 0f : (axis == 0 ? -700f : 700f)));
+        }
+
+        [TestCase(0, 3)]
+        [TestCase(0, 0)]
+        [TestCase(1, 3)]
+        [TestCase(1, 0)]
+        public void LazyLayout_DataShrinkCancelsInvalidTarget(int axis, int count)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new LazySource { Prefab = _prefab, Count = 10 };
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.SetPositionIndex(9);
+            source.Count = count;
+            Assert.DoesNotThrow(() => Tick(scroll));
+            Assert.That(typeof(LazyLayoutListScroll).GetField("_targetIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll), Is.EqualTo(-1));
+        }
+
+        [TestCase(0, -1000f, 0f)]
+        [TestCase(1, 1000f, 0f)]
+        [TestCase(0, -1000f, -9700f)]
+        [TestCase(1, 1000f, 9700f)]
+        public void PositionEvent_ReportsClampedValueOnlyWhenPositionChanges(int axis, float start, float expected)
+        {
+            var scroll = Create<FixedListScroll>(axis);
+            scroll.SetDataSource(new Source { Prefab = _prefab });
+            scroll.Refresh();
+            var scroller = typeof(BaseScroll<IDataSource>).GetProperty("Scroller", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(scroll);
+            var type = scroller.GetType();
+            type.GetField("_overScroll", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, false);
+            var position = type.GetProperty("ScrollPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            position.SetValue(scroller, start);
+            var change = new ScrollEvent();
+            type.GetField("_onValueChanged", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, change);
+            var values = new List<float>();
+            change.AddListener(values.Add);
+            position.SetValue(scroller, expected == 0f ? -start : expected * 2f);
+            position.SetValue(scroller, expected == 0f ? -start * 2f : expected * 3f);
+            Assert.That(values, Is.EqualTo(new[] { expected }));
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(expected));
+        }
+
+        [TestCase(0, false)]
+        [TestCase(1, false)]
+        [TestCase(0, true)]
+        [TestCase(1, true)]
+        public void LazyLayout_MeasuredSourceCanShrinkAfterNavigation(int axis, bool clear)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            Tick(scroll);
+            scroll.SetPositionIndex(9, smooth: false);
+            Tick(scroll);
+            Assert.That(Mathf.Abs(scroll.ScrollPosition), Is.GreaterThan(0f));
+            if (clear) source.Clear();
+            else for (var i = 9; i >= 5; i--) source.RemoveAt(i);
+            Assert.DoesNotThrow(() => Tick(scroll));
+            Assert.DoesNotThrow(() => Tick(scroll));
+            Assert.That(typeof(LazyLayoutListScroll).GetField("_targetIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll), Is.EqualTo(-1));
+            Assert.That(Mathf.Abs(scroll.ScrollPosition), Is.LessThanOrEqualTo(clear ? 0f : 200f));
+            if (clear) Assert.That(scroll.VisibleRange, Is.EqualTo(Range.Empty));
+        }
+
+        [TestCase(0, false)]
+        [TestCase(1, false)]
+        [TestCase(0, true)]
+        [TestCase(1, true)]
+        public void PositionEvent_AllowsUnclampedPositionAndIgnoresIdenticalAssignments(int axis, bool infinite)
+        {
+            var scroll = Create<FixedListScroll>(axis);
+            var scroller = typeof(BaseScroll<IDataSource>).GetProperty("Scroller", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(scroll);
+            var type = scroller.GetType();
+            type.GetField("_overScroll", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, !infinite);
+            type.GetProperty("ScrollSize", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(scroller, infinite ? float.PositiveInfinity : 100f);
+            var change = new ScrollEvent();
+            type.GetField("_onValueChanged", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, change);
+            var values = new List<float>();
+            change.AddListener(value =>
+            {
+                Assert.That(scroll.ScrollPosition, Is.EqualTo(value), "Stored position must be updated before notification.");
+                values.Add(value);
+            });
+            var position = type.GetProperty("ScrollPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            var expected = axis == 0 ? -200f : 200f;
+            position.SetValue(scroller, expected);
+            position.SetValue(scroller, expected);
+            position.SetValue(scroller, 0f);
+            position.SetValue(scroller, 0f);
+            Assert.That(values, Is.EqualTo(new[] { expected, 0f }));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_BeginDragCancelsPendingNavigation(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            scroll.SetDataSource(new LazySource { Prefab = _prefab });
+            Tick(scroll);
+            scroll.SetPositionIndex(50);
+            var pointer = new PointerEventData(null) { pointerDrag = _root, pointerId = 1 };
+            ((IBeginDragHandler)scroll).OnBeginDrag(pointer);
+            Tick(scroll);
+            Assert.That(scroll.IsDragging, Is.True);
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(0f));
+            Assert.That(typeof(LazyLayoutListScroll).GetField("_targetIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll), Is.EqualTo(-1));
+            ((IEndDragHandler)scroll).OnEndDrag(pointer);
+            Tick(scroll);
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(0f));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void LazyLayout_NormalizedPositionReplacesPendingNavigation(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            scroll.SetDataSource(new LazySource { Prefab = _prefab });
+            Tick(scroll);
+            scroll.SetPositionIndex(50);
+            scroll.Refresh(0.25f);
+            Tick(scroll);
+            Tick(scroll);
+            Assert.That(scroll.NormalizedPosition, Is.EqualTo(0.25f).Within(0.001f));
+            Assert.That(scroll.IsIdling, Is.True);
         }
 
         private T Create<T>(int axis) where T : Component
@@ -60,8 +248,9 @@ namespace SimpleScroll.Tests
 
         private static void Tick<T>(BaseScroll<T> scroll) where T : IDataSource
         {
-            typeof(BaseScroll<T>).GetMethod("UpdatePosition", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(scroll, new object[] { scroll.ScrollPosition });
+            typeof(BaseScroll<T>).GetMethod("UpdatePosition", BindingFlags.Instance | BindingFlags.NonPublic,
+                    null, System.Type.EmptyTypes, null)
+                .Invoke(scroll, null);
         }
 
         [TearDown]

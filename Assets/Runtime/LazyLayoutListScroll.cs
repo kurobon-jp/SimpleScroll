@@ -12,7 +12,6 @@ namespace SimpleScroll
         [SerializeField] private float _space;
         [SerializeField] private ContentPadding _contentPadding;
 
-        private float _targetPosition;
         private int _targetIndex = -1;
         private float _targetAnchor;
         private bool _targetSmooth;
@@ -44,20 +43,15 @@ namespace SimpleScroll
             return Mathf.Max(0f, contentSize - ViewportSize);
         }
 
-        protected override void OnDrag(float targetPosition)
+        protected override void OnScrollInterrupted()
         {
-            _targetPosition = targetPosition;
             _targetIndex = -1;
+            _normalizedPosition = float.NaN;
         }
 
-        protected override void OnScroll(float scrollDelta)
+        protected override void PrepareScroll()
         {
-            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
-            _targetIndex = -1;
-        }
-
-        protected override void OnStopScroll(float velocity)
-        {
+            if (_targetIndex >= DataSource.GetDataCount()) StopScroll();
         }
 
         protected override Range Reposition(float scrollDelta, bool isResized)
@@ -66,6 +60,7 @@ namespace SimpleScroll
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0)
             {
+                Content.SetLocalPosition(0f, Scroller.Axis);
                 CellViewPool.ReleaseAll();
                 return visibleRange;
             }
@@ -97,34 +92,28 @@ namespace SimpleScroll
             if (sizeDelta != 0f && ToScrollOffset(scrollDelta) < 0f)
             {
                 sizeDelta = ToScrollPosition(-sizeDelta);
-                _targetPosition += sizeDelta;
-                Scroller.ScrollPosition += sizeDelta;
-            }
-
-            if (isResized)
-            {
-                _targetPosition = Scroller.ScrollPosition = ClampPosition(Scroller.ScrollPosition);
+                Scroller.ShiftPosition(sizeDelta);
             }
 
             if (_targetIndex >= 0)
             {
                 var size = DataSource.GetCellViewSize(_targetIndex);
                 offset = DataSource.GetCellViewOffset(_targetIndex);
-                var targetPosition = GetAlignedScrollPosition(offset, size, _targetAnchor);
+                var targetPosition = ClampPosition(GetAlignedScrollPosition(offset, size, _targetAnchor));
                 if (Mathf.Abs(targetPosition - Scroller.ScrollPosition) < 1f)
                 {
+                    Scroller.MoveTo(targetPosition, false);
                     _targetIndex = -1;
                 }
                 else
                 {
-                    _targetPosition = ClampPosition(targetPosition);
                     if (!_targetSmooth)
                     {
-                        Scroller.ScrollPosition = _targetPosition;
+                        Scroller.MoveTo(targetPosition, false);
                     }
                     else
                     {
-                        Scroller.OnSnap();
+                        Scroller.SetTargetPosition(targetPosition);
                     }
                 }
             }
@@ -150,8 +139,7 @@ namespace SimpleScroll
 
             visibleRange = new Range(visibleStart, visibleEnd);
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
-            _targetPosition -= sizeDelta;
-            Scroller.ScrollPosition -= sizeDelta;
+            Scroller.ShiftPosition(-sizeDelta);
             if (!float.IsNaN(_normalizedPosition))
             {
                 base.Refresh(_normalizedPosition, false);
@@ -205,21 +193,6 @@ namespace SimpleScroll
             return sizeDelta;
         }
 
-        private void LateUpdate()
-        {
-            if (Scroller.IsIdling || Scroller.IsSnapping)
-            {
-                _targetPosition = ClampPosition(_targetPosition);
-            }
-
-            UpdatePosition(_targetPosition);
-        }
-
-        protected override void OnNormalizePositionChanged(float _)
-        {
-            _targetPosition = Scroller.ScrollPosition;
-        }
-
         public override void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
             base.Refresh(normalizedPosition, isRefreshVisibleCells);
@@ -229,8 +202,9 @@ namespace SimpleScroll
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
-            Scroller.Stop();
+            StopScroll();
             var dataCount = DataSource.GetDataCount();
+            if (dataCount == 0) return;
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             _targetIndex = positionIndex;
             _targetAnchor = anchor;
