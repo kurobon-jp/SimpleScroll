@@ -14,6 +14,10 @@ Scrollerが現在位置、目標位置、速度、移動状態を管理する。
 
 全Scrollで停止するStopと、CarouselのSnapToNearestを分離する。旧StopScrollはObsolete警告付きで残し、Carouselの従来のスナップ動作を維持する。移行方法は[API移行ガイド](api-migration.md)を参照する。
 
+### LazyLayoutの追加課題
+
+実測サイズ40、推定サイズ100の10セルで、Refresh(1f)の最初の計測後にSetPositionIndex(0, smooth: false)で先頭へ戻すと、前方セルを補充するループでindexがマイナス1になり範囲外参照が発生する。前方補充の境界と位置補正を別途修正する。正規化位置の要求保持とは別の未解決課題として扱う。
+
 ## 公開APIと非推奨化の課題
 
 移動管理の変更では、従来のprotected UpdatePositionの引数付きオーバーロードを薄い転送として残し、Obsoleteで引数なしUpdatePositionとMoveToPositionへの移行を案内する。既存の継承コードは警告付きでコンパイルできる。旧APIは1.xでは削除せず、2.0で削除する予定とする。

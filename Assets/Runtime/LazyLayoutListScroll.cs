@@ -66,6 +66,7 @@ namespace SimpleScroll
             }
 
             var axis = Scroller.Axis;
+            var previousExtent = Scroller.ScrollSize;
             var scrollPosition = ScrollOffset;
 
             var start = DataSource.FindDataIndex(scrollPosition);
@@ -138,13 +139,15 @@ namespace SimpleScroll
             }
 
             visibleRange = new Range(visibleStart, visibleEnd);
-            Content.SetLocalPosition(Scroller.ScrollPosition, axis);
             Scroller.ShiftPosition(-sizeDelta);
             if (!float.IsNaN(_normalizedPosition))
             {
-                base.SetNormalizedPosition(_normalizedPosition);
-                _normalizedPosition = float.NaN;
+                var normalizedPosition = _normalizedPosition;
+                base.SetNormalizedPosition(normalizedPosition);
+                // The base setter clears tracking; retain this request while measurement changes the extent.
+                _normalizedPosition = previousExtent == Scroller.ScrollSize ? float.NaN : normalizedPosition;
             }
+            Content.SetLocalPosition(Scroller.ScrollPosition, axis);
             
             return visibleRange;
         }

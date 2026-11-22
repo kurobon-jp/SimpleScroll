@@ -300,9 +300,51 @@ namespace SimpleScroll.Tests
             Assert.That(scrollType.GetProperty("IsIdling").GetValue(scroll), Is.True);
         }
 
-        [TestCase(0)]
-        [TestCase(1)]
-        public void RefreshAppliesNormalizedPositionToMeasuredLayout(int axis)
+        [TestCase(0, true, 0f)]
+        [TestCase(1, true, 0f)]
+        [TestCase(0, true, 0.5f)]
+        [TestCase(1, true, 0.5f)]
+        [TestCase(0, true, 1f)]
+        [TestCase(1, true, 1f)]
+        [TestCase(0, false, 0f)]
+        [TestCase(1, false, 0f)]
+        [TestCase(0, false, 0.5f)]
+        [TestCase(1, false, 0.5f)]
+        [TestCase(0, false, 1f)]
+        [TestCase(1, false, 1f)]
+        public void RefreshAppliesNormalizedPositionToMeasuredLayout(int axis, bool overScroll, float normalizedPosition)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            var scroller = typeof(BaseScroll<ILazyLayoutDataSource>).GetProperty("Scroller", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll);
+            scroller.GetType().GetField("_overScroll", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, overScroll);
+            ((RectTransform)_prefab.transform).sizeDelta = new Vector2(40f, 40f);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            scroll.Refresh(normalizedPosition);
+            for (var frame = 0; frame < 20; frame++) Tick(scroll);
+            var extent = Mathf.Max(0f, source.GetTotalContentSize(default, 100f, 0f) - 300f);
+            var direction = axis == 0 ? -1f : 1f;
+            var actualOffset = scroll.ScrollPosition * direction;
+            Assert.That(actualOffset, Is.InRange(0f, extent));
+            Assert.That(actualOffset, Is.EqualTo(extent * normalizedPosition).Within(0.001f));
+            Assert.That(_content.localPosition[axis], Is.EqualTo(scroll.ScrollPosition).Within(0.001f));
+            Assert.That(typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(scroll), Is.NaN, "The pending destination should clear after measurement stabilizes.");
+            if (normalizedPosition == 1f)
+            {
+                var lastCell = (RectTransform)source.Cells[9].transform;
+                var trailingEdge = lastCell.localPosition[axis] + _content.localPosition[axis] - direction * lastCell.rect.size[axis] * 0.5f;
+                Assert.That(trailingEdge, Is.EqualTo(-direction * 150f).Within(0.001f), "The measured end must meet the viewport edge.");
+            }
+        }
+
+        [TestCase(0, false)]
+        [TestCase(1, false)]
+        [TestCase(0, true)]
+        [TestCase(1, true)]
+        public void MeasuredNormalizedDestinationCanBeCanceled(int axis, bool navigateToCell)
         {
             var scroll = Create<LazyLayoutListScroll>(axis);
             ((RectTransform)_prefab.transform).sizeDelta = new Vector2(40f, 40f);
@@ -311,8 +353,13 @@ namespace SimpleScroll.Tests
             scroll.SetDataSource(source);
             scroll.Refresh(1f);
             Tick(scroll);
-            Tick(scroll);
-            Assert.That(scroll.NormalizedPosition, Is.EqualTo(1f).Within(0.001f));
+            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(pending.GetValue(scroll), Is.EqualTo(1f));
+            if (navigateToCell) scroll.SetPositionIndex(9, smooth: false);
+            else scroll.Stop();
+            Assert.That(pending.GetValue(scroll), Is.NaN);
+            for (var frame = 0; frame < 20; frame++) Tick(scroll);
+            Assert.That(pending.GetValue(scroll), Is.NaN);
         }
 
         [TestCase(false, 0, false)]
