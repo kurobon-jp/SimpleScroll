@@ -199,6 +199,7 @@ namespace SimpleScroll
         /// <summary>Sets a position between 0 and 1 without rebinding cells. Requires a finite, initialized layout.</summary>
         public virtual void SetNormalizedPosition(float normalizedPosition)
         {
+            if (_pointerId != int.MinValue) Scroller.Stop();
             _pointerId = int.MinValue;
             OnScrollInterrupted();
             Scroller.NormalizedPosition = normalizedPosition;

@@ -212,6 +212,55 @@ namespace SimpleScroll.Tests
 
         [TestCase(0)]
         [TestCase(1)]
+        public void NormalizedPositionCancelsPointerDragAndIgnoresItsRemainingEvents(int axis)
+        {
+            var scroll = Create<FixedListScroll>(axis);
+            scroll.SetDataSource(new Source { Prefab = _prefab });
+            Tick(scroll);
+            var pointer = new PointerEventData(null) { pointerDrag = _root, pointerId = 1 };
+            ((IBeginDragHandler)scroll).OnBeginDrag(pointer);
+            Assert.That(scroll.IsDragging, Is.True);
+            scroll.SetNormalizedPosition(0.5f);
+            Assert.That(scroll.IsIdling, Is.True);
+            var position = scroll.ScrollPosition;
+            pointer.position = new Vector2(50f, 50f);
+            ((IDragHandler)scroll).OnDrag(pointer);
+            ((IEndDragHandler)scroll).OnEndDrag(pointer);
+            Tick(scroll);
+            Assert.That(scroll.IsDragging, Is.False);
+            Assert.That(scroll.IsIdling, Is.True);
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(position));
+            pointer.pointerId = 2;
+            ((IBeginDragHandler)scroll).OnBeginDrag(pointer);
+            Assert.That(scroll.IsDragging, Is.True, "A new gesture must still be accepted.");
+            ((IEndDragHandler)scroll).OnEndDrag(pointer);
+            Assert.That(scroll.IsDragging, Is.False);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void NormalizedPositionPreservesScrollbarDragUntilHandlingEnds(int axis)
+        {
+            var scroll = Create<FixedListScroll>(axis);
+            scroll.SetDataSource(new Source { Prefab = _prefab });
+            Tick(scroll);
+            var listener = typeof(BaseScroll<IDataSource>).GetInterface("SimpleScroll.IScrollbarEventListener");
+            var handling = listener.GetMethod("OnScrollbarHandling");
+            var valueChanged = listener.GetMethod("OnScrollbarValueChanged");
+            handling.Invoke(scroll, new object[] { true });
+            valueChanged.Invoke(scroll, new object[] { 0.25f });
+            Assert.That(scroll.IsDragging, Is.True);
+            Assert.That(scroll.NormalizedPosition, Is.EqualTo(0.25f).Within(0.001f));
+            valueChanged.Invoke(scroll, new object[] { 0.75f });
+            Assert.That(scroll.IsDragging, Is.True);
+            handling.Invoke(scroll, new object[] { false });
+            Tick(scroll);
+            Assert.That(scroll.IsIdling, Is.True);
+            Assert.That(scroll.NormalizedPosition, Is.EqualTo(0.75f).Within(0.001f));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
         public void LazyLayout_NormalizedPositionReplacesPendingNavigation(int axis)
         {
             var scroll = Create<LazyLayoutListScroll>(axis);
