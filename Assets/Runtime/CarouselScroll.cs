@@ -104,7 +104,8 @@ namespace SimpleScroll
         {
             var stopPos = ScrollOffset / CellStride;
             var positionIndex = velocity < 0 ? Mathf.CeilToInt(stopPos) : Mathf.FloorToInt(stopPos);
-            SetPositionIndex(positionIndex);
+            SetPositionIndex(positionIndex, true, false);
+            Scroller.MoveTo(ToScrollPosition(_positionIndex * CellStride), true);
         }
 
         protected override Range Reposition(float scrollDelta, bool isResized)
@@ -163,7 +164,7 @@ namespace SimpleScroll
 
         protected override void LateUpdate()
         {
-            if (Scroller.IsIdling || Scroller.IsSnapping)
+            if (Scroller.IsSnapping)
             {
                 Scroller.SetTargetPosition(ToScrollPosition(_positionIndex * CellStride));
             }
@@ -173,6 +174,15 @@ namespace SimpleScroll
 
         public void Next() => SetPositionIndex(_positionIndex + 1);
         public void Prev() => SetPositionIndex(_positionIndex - 1);
+
+        /// <summary>Moves to the cell nearest to the current position, independently of stopping.</summary>
+        public void SnapToNearest(bool smooth = true)
+        {
+            if (DataSource == null || DataSource.GetDataCount() == 0) return;
+            var index = Mathf.RoundToInt(ScrollOffset / CellStride);
+            SetPositionIndex(index, smooth, false);
+            MoveToPosition(ToScrollPosition(_positionIndex * CellStride), smooth);
+        }
 
         public void SetPositionIndex(int positionIndex, bool smooth = true)
         {
@@ -197,7 +207,7 @@ namespace SimpleScroll
             if (!smooth)
             {
                 Scroller.MoveTo(ToScrollPosition(positionIndex * CellStride), false);
-                StopScroll();
+                Stop();
             }
             else if (snap)
             {

@@ -41,6 +41,7 @@ namespace SimpleScroll
         private float _scrollSize = float.PositiveInfinity;
         private float _velocity;
         private float _elasticTime;
+        private double _snapRemainder;
         private Vector2 _pointerPoint;
         private RectTransform _dragTarget;
         private int _dragFrame;
@@ -186,6 +187,7 @@ namespace SimpleScroll
         {
             State = ScrollState.Snapping;
             _velocity = 0f;
+            _snapRemainder = 0d;
         }
 
         internal float Update(float deltaTime)
@@ -212,6 +214,7 @@ namespace SimpleScroll
                 }
             }
 
+            if (deltaTime <= 0f) return 0f;
             var speed = _velocity;
             var scrollPos = ScrollPosition;
             if (IsSnapping) _targetPosition = ClampPosition(_targetPosition);
@@ -242,7 +245,11 @@ namespace SimpleScroll
             }
             else
             {
-                scrollPos = Mathf.Lerp(scrollPos, targetPosition, deltaTime * SnapResponse);
+                // Carry sub-float steps forward instead of stalling at very high frame rates.
+                var nextPosition = scrollPos + ((double)targetPosition - scrollPos) *
+                    Mathf.Clamp01(deltaTime * SnapResponse) + _snapRemainder;
+                scrollPos = (float)nextPosition;
+                _snapRemainder = nextPosition - scrollPos;
                 _velocity = 0;
             }
 
@@ -267,6 +274,7 @@ namespace SimpleScroll
             _velocity = 0f;
             _scrollDelta = 0f;
             _elasticTime = 0f;
+            _snapRemainder = 0d;
         }
 
         internal float ClampPosition(float position)

@@ -71,7 +71,7 @@ namespace SimpleScroll.Tests
             scrollType.GetMethod("SetDataSource").Invoke(scroll, new object[] { source });
             scrollType.GetMethod("Refresh", new[] { typeof(bool) }).Invoke(scroll, new object[] { true });
             scrollType.GetMethod("SetPositionIndex").Invoke(scroll, new object[] { 10, 0.5f, true });
-            scrollType.GetMethod("StopScroll").Invoke(scroll, null);
+            scrollType.GetMethod("Stop").Invoke(scroll, null);
             var position = (float)scrollType.GetProperty("ScrollPosition").GetValue(scroll);
             for (var i = 0; i < 3; i++)
                 scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(scroll, null);
@@ -218,11 +218,99 @@ namespace SimpleScroll.Tests
             scroll.SetDataSource(new LazySource { Prefab = _prefab });
             Tick(scroll);
             scroll.SetPositionIndex(50);
-            scroll.Refresh(0.25f);
+            scroll.SetNormalizedPosition(0.25f);
             Tick(scroll);
             Tick(scroll);
             Assert.That(scroll.NormalizedPosition, Is.EqualTo(0.25f).Within(0.001f));
             Assert.That(scroll.IsIdling, Is.True);
+        }
+
+        [TestCase(typeof(FixedListScroll), 0)]
+        [TestCase(typeof(FixedListScroll), 1)]
+        [TestCase(typeof(FixedGridScroll), 0)]
+        [TestCase(typeof(FixedGridScroll), 1)]
+        [TestCase(typeof(SizedListScroll), 0)]
+        [TestCase(typeof(SizedListScroll), 1)]
+        [TestCase(typeof(LazyLayoutListScroll), 0)]
+        [TestCase(typeof(LazyLayoutListScroll), 1)]
+        public void NormalizedNavigationDoesNotRebindAndCancelsMovement(System.Type scrollType, int axis)
+        {
+            var scroll = (Component)typeof(ScrollTests).GetMethod(nameof(Create), BindingFlags.Instance | BindingFlags.NonPublic)
+                .MakeGenericMethod(scrollType).Invoke(this, new object[] { axis });
+            Source source = scrollType == typeof(LazyLayoutListScroll) ? new LazySource() : new Source();
+            source.Prefab = _prefab;
+            scrollType.GetMethod("SetDataSource").Invoke(scroll, new object[] { source });
+            scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(scroll, null);
+            scrollType.GetMethod("SetPositionIndex").Invoke(scroll, new object[] { 50, 0.5f, true });
+            var binds = source.BindCount;
+            scrollType.GetMethod("SetNormalizedPosition").Invoke(scroll, new object[] { 0.25f });
+            Assert.That(source.BindCount, Is.EqualTo(binds));
+            for (var i = 0; i < 3; i++)
+                scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(scroll, null);
+            Assert.That(scrollType.GetProperty("NormalizedPosition").GetValue(scroll), Is.EqualTo(0.25f).Within(0.001f));
+            Assert.That(scrollType.GetProperty("IsIdling").GetValue(scroll), Is.True);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void RefreshAppliesNormalizedPositionToMeasuredLayout(int axis)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            ((RectTransform)_prefab.transform).sizeDelta = new Vector2(40f, 40f);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            scroll.Refresh(1f);
+            Tick(scroll);
+            Tick(scroll);
+            Assert.That(scroll.NormalizedPosition, Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [TestCase(false, 0, false)]
+        [TestCase(false, 1, false)]
+        [TestCase(false, 0, true)]
+        [TestCase(false, 1, true)]
+        [TestCase(true, 0, false)]
+        [TestCase(true, 1, false)]
+        [TestCase(true, 0, true)]
+        [TestCase(true, 1, true)]
+        public void RefreshAtEndDoesNotBindCellsAtPreviousPosition(bool lazy, int axis, bool rebind)
+        {
+            var scrollType = lazy ? typeof(LazyLayoutListScroll) : typeof(FixedListScroll);
+            var scroll = (Component)typeof(ScrollTests).GetMethod(nameof(Create), BindingFlags.Instance | BindingFlags.NonPublic)
+                .MakeGenericMethod(scrollType).Invoke(this, new object[] { axis });
+            Source source = lazy ? new LazySource() : new Source();
+            source.Prefab = _prefab;
+            source.Count = 10;
+            scrollType.GetMethod("SetDataSource").Invoke(scroll, new object[] { source });
+            var tick = scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic);
+            tick.Invoke(scroll, null);
+            source.Count = 20;
+            source.Cells.Clear();
+            var binds = source.BindCount;
+            scrollType.GetMethod("Refresh", new[] { typeof(float), typeof(bool) })
+                .Invoke(scroll, new object[] { 1f, rebind });
+            Assert.That(source.BindCount, Is.EqualTo(binds), "Refresh must choose the destination before any cell binding.");
+            tick.Invoke(scroll, null);
+            Assert.That(source.Cells.Count, Is.GreaterThan(0));
+            foreach (var index in source.Cells.Keys)
+                Assert.That(index, Is.GreaterThanOrEqualTo(17), "Only cells at the requested destination should be bound.");
+            Assert.That(scrollType.GetProperty("NormalizedPosition").GetValue(scroll), Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [Test]
+        public void LegacyStopScrollStillStopsListNavigation()
+        {
+            var scroll = Create<FixedListScroll>(1);
+            scroll.SetDataSource(new Source { Prefab = _prefab });
+            Tick(scroll);
+            scroll.SetPositionIndex(50);
+#pragma warning disable CS0618 // Verify the supported legacy entry point.
+            scroll.StopScroll();
+#pragma warning restore CS0618
+            Tick(scroll);
+            Assert.That(scroll.IsIdling, Is.True);
+            Assert.That(scroll.ScrollPosition, Is.EqualTo(0f));
         }
 
         private T Create<T>(int axis) where T : Component

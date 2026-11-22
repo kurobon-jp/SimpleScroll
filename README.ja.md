@@ -93,24 +93,21 @@ _scroll.SetPositionIndex(20, anchor: 0.5f, smooth: true);
 
 リストの`anchor`はViewport内の配置位置です。`0`は先頭、`0.5`は中央、`1`は末尾に合わせます。実際の移動先はスクロール可能な範囲に制限されます。
 
-正規化位置を指定して更新する場合は、先頭なら`Refresh(0f)`、末尾なら`Refresh(1f)`を使います。データ変更後にインデックスへ移動するときは、先に`Refresh()`でサイズとオフセットを更新してください。
-
-#### Refreshの引数
+セルを再バインドせずに位置だけを変える場合は、先頭なら`SetNormalizedPosition(0f)`、末尾なら`SetNormalizedPosition(1f)`を使います。データ変更後は、先に`Refresh()`でサイズとオフセットを更新してください。
 
 ```csharp
-void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
+_scroll.Refresh(1f, false); // 表示中のセルを維持し、末尾を指定して更新します。
 ```
 
-レイアウトを再計算し、指定した正規化位置へ移動します。
+データ・レイアウト更新と表示位置を一度に指定する場合は`Refresh(normalizedPosition, isRefreshVisibleCells)`を使います。位置指定なしの更新は`Refresh(bool)`、位置だけの変更は`SetNormalizedPosition()`です。3つとも正式APIとして維持します。
 
-| 引数 | 説明 |
-| --- | --- |
-| `normalizedPosition` | スクロール可能な範囲内の位置（`0`〜`1`）。`0`が先頭、`1`が末尾です。 |
-| `isRefreshVisibleCells` | `true`（既定値）で表示中のセルにもデータを再バインドします。`false`では表示中のセルを維持し、レイアウトを再計算します。表示内容も変更した場合は`true`を使ってください。 |
+`Refresh(false)`は表示中のセルを維持してレイアウトを再計算し、`Refresh()`は再バインドも行います。正規化位置は、初期化済みの有限スクロール範囲で使います。ループするCarouselには正規化位置がありません。
 
-`Refresh(bool isRefreshVisibleCells = true)`では、正規化位置を指定せずに更新できます。
+`CarouselScroll.SnapToNearest()`は最寄りセルの中央へ移動します。`false`を渡すと即時移動します。`Stop()`はCarouselでもセルの途中の位置を保持します。
 
-`LazyLayoutListScroll`では、未計測セルの推定サイズを使って全体の長さを計算するため、`normalizedPosition`が`0`・`1`以外の場合、すべてのセルを計測した場合の位置との間に誤差が出ることがあります。特定の項目へ移動したい場合は`SetPositionIndex`を使ってください。
+`StopScroll()`とprotectedの`UpdatePosition(float)`は、Obsolete警告付きで利用できます。置換先と互換動作は[API移行ガイド](docs/api-migration.md)を参照してください。
+
+`LazyLayoutListScroll`は未計測セルに推定サイズを使うため、途中の正規化位置は計測によって変わることがあります。特定のセルへ移動する場合は`SetPositionIndex`を使ってください。
 
 ## データソースとセルの再利用
 

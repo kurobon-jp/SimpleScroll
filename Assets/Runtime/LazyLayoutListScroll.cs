@@ -51,7 +51,7 @@ namespace SimpleScroll
 
         protected override void PrepareScroll()
         {
-            if (_targetIndex >= DataSource.GetDataCount()) StopScroll();
+            if (_targetIndex >= DataSource.GetDataCount()) Stop();
         }
 
         protected override Range Reposition(float scrollDelta, bool isResized)
@@ -142,7 +142,7 @@ namespace SimpleScroll
             Scroller.ShiftPosition(-sizeDelta);
             if (!float.IsNaN(_normalizedPosition))
             {
-                base.Refresh(_normalizedPosition, false);
+                base.SetNormalizedPosition(_normalizedPosition);
                 _normalizedPosition = float.NaN;
             }
             
@@ -193,16 +193,16 @@ namespace SimpleScroll
             return sizeDelta;
         }
 
-        public override void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
+        public override void SetNormalizedPosition(float normalizedPosition)
         {
-            base.Refresh(normalizedPosition, isRefreshVisibleCells);
+            base.SetNormalizedPosition(normalizedPosition);
             _normalizedPosition = normalizedPosition;
         }
 
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
-            StopScroll();
+            Stop();
             var dataCount = DataSource.GetDataCount();
             if (dataCount == 0) return;
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);

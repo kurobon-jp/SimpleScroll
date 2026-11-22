@@ -147,6 +147,7 @@ namespace SimpleScroll
             Resize();
         }
 
+        /// <summary>Refreshes data and layout at the requested normalized position before cells are updated.</summary>
         public virtual void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
             Refresh(isRefreshVisibleCells);
@@ -195,8 +196,10 @@ namespace SimpleScroll
             UpdatePosition();
         }
 
-        private void SetNormalizedPosition(float normalizedPosition)
+        /// <summary>Sets a position between 0 and 1 without rebinding cells. Requires a finite, initialized layout.</summary>
+        public virtual void SetNormalizedPosition(float normalizedPosition)
         {
+            _pointerId = int.MinValue;
             OnScrollInterrupted();
             Scroller.NormalizedPosition = normalizedPosition;
             OnNormalizePositionChanged(Scroller.NormalizedPosition);
@@ -223,7 +226,7 @@ namespace SimpleScroll
             _pointerId = int.MinValue;
             if (!IsDraggable)
             {
-                StopScroll();
+                Stop();
                 return;
             }
             var targetPosition = Scroller.OnEndDrag(e);
@@ -256,6 +259,7 @@ namespace SimpleScroll
             OnScrollInterrupted();
             Scroller.Stop();
             if (isHandled) Scroller.State = ScrollState.Dragging;
+            else OnDrag(ScrollPosition);
         }
 
         protected abstract float GetScrollSize();
@@ -288,12 +292,19 @@ namespace SimpleScroll
         {
         }
 
-        public void StopScroll()
+        /// <summary>Cancels movement and cell tracking at the current position.</summary>
+        public void Stop()
         {
             _pointerId = int.MinValue;
-            var velocity = Scroller.Velocity;
             OnScrollInterrupted();
             Scroller.Stop();
+        }
+
+        [Obsolete("Use Stop() to stop at the current position. CarouselScroll.SnapToNearest() explicitly snaps to a cell.")]
+        public void StopScroll()
+        {
+            var velocity = Scroller.Velocity;
+            Stop();
             OnStopScroll(velocity);
         }
 

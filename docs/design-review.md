@@ -12,24 +12,24 @@ Scrollerが現在位置、目標位置、速度、移動状態を管理する。
 - ドラッグ、ホイール、スクロールバー、直接の位置指定、無効化で以前のセル追従を解除する。
 - 更新処理で配列、LINQ、クロージャ、コルーチンを新規に作らない。セルの仮想化とプールを維持する。
 
-Carouselの公開APIと中央スナップは維持する。現在のCarouselはStopScrollでもセルへのスナップを行うため、停止とスナップのAPI分離は未解決課題とする。
+全Scrollで停止するStopと、CarouselのSnapToNearestを分離する。旧StopScrollはObsolete警告付きで残し、Carouselの従来のスナップ動作を維持する。移行方法は[API移行ガイド](api-migration.md)を参照する。
 
 ## 公開APIと非推奨化の課題
 
-移動管理の変更では、従来のprotected UpdatePositionの引数付きオーバーロードを薄い転送として残し、Obsoleteで引数なしUpdatePositionとMoveToPositionへの移行を案内する。既存の継承コードは警告付きでコンパイルできる。削除時期は次のメジャーバージョンを候補とし、公開リリース前に確定する。
+移動管理の変更では、従来のprotected UpdatePositionの引数付きオーバーロードを薄い転送として残し、Obsoleteで引数なしUpdatePositionとMoveToPositionへの移行を案内する。既存の継承コードは警告付きでコンパイルできる。旧APIは1.xでは削除せず、2.0で削除する予定とする。
 
-その他の新APIは未確定。以下を移行設計の対象とする。
+Stop、SnapToNearest、SetNormalizedPositionを実装し、旧StopScrollを非推奨化する。位置指定付きRefreshは正式APIとして維持する。その他のAPIの方針は以下のとおり。
 
 | 現行API | 見直し内容 |
 | --- | --- |
 | SetPositionIndex | indexがデータindexなのか表示位置なのかを明確にする。Carouselのループ位置との違いも定義する |
 | SetScrollPosition | index指定と同じ移動管理を使い、直接位置指定の単位と符号を定義する |
 | smooth引数 | duration追加時に即時移動と時間指定へ整理する。現在の追従係数を秒数へ直接変換しない |
-| StopScroll | 現在位置での停止と、Carouselの最寄りセルへのスナップを分離するか決める |
-| Refreshのオーバーロード | 再バインド、レイアウト更新、正規化位置の変更が混在する責務を見直す |
+| StopScroll | StopとSnapToNearestへ分離済み。旧動作は互換入口として維持する |
+| Refreshのオーバーロード | 位置指定付きRefresh、Refresh(bool)、SetNormalizedPositionを用途別の正式APIとして維持する。更新と表示位置の指定を一度に行えるようにする |
 | VisibleRangeとOnVisibleRangeChanged | 非連続の可視indexを正確に扱うAPIへ移行する |
 | protectedのRepositionとUpdatePosition | 継承する利用者も移行対象とし、公開メソッドと同じく変更手順を定義する |
-| IndexedDictionaryなどの補助型 | 利用者向けに公開し続ける必要があるか確認する |
+| IndexedDictionaryなどの補助型 | 1.xでは公開を維持する。内部化は2.0で判断する |
 
 置換先が使える状態になってから、旧APIにObsoleteの警告と移行例を追加する。単に警告だけを追加しない。同名のoptional引数付きオーバーロードによる曖昧さと、既存の引数省略時の動作変更を検証する。互換処理は旧APIから新APIへの薄い転送に限定し、削除するバージョンを決める。
 
@@ -59,7 +59,7 @@ Carouselの公開APIと中央スナップは維持する。現在のCarouselはS
 ## 実施順序
 
 1. 移動と停止の責務を整理し、回帰テストを通す。
-2. 公開APIとprotected API、Obsoleteの移行方針を確定する。
+2. 停止・スナップ・正規化位置のAPI分離と、1.xでの警告付き互換維持、2.0での旧API削除を移行方針とする。
 3. 可視index表現とプールを見直し、Gridの並び順切り替えに対応する。
 4. Carouselを除く4種へoffsetとdurationを追加する。
 5. サンプル、README、移行例、性能測定を更新する。

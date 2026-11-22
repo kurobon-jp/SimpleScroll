@@ -107,6 +107,22 @@ namespace SimpleScroll.Tests
 
         [TestCase(0)]
         [TestCase(1)]
+        public void SnappingCompletesWhenPositiveStepRoundsToCurrentFloat(int axis)
+        {
+            Create(axis);
+            var direction = axis == 0 ? -1f : 1f;
+            Call("MoveTo", 300f * direction, false);
+            Call("MoveTo", 300.01f * direction, true);
+            Call("Update", 0.0001f);
+            Assert.That(Get("ScrollPosition"), Is.EqualTo(300f * direction));
+            Assert.That(Get("State"), Is.EqualTo(ScrollState.Snapping));
+            for (var frame = 0; frame < 5000 && !(bool)Get("IsIdling"); frame++) Call("Update", 0.0001f);
+            Assert.That(Get("ScrollPosition"), Is.EqualTo(300.01f * direction));
+            Assert.That(Get("State"), Is.EqualTo(ScrollState.Idle));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
         public void CoastingReturnsFromOverscrollAndFinishesWithinBounds(int axis)
         {
             Create(axis);

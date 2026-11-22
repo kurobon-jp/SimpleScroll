@@ -80,7 +80,7 @@ namespace SimpleScroll.Tests
                 var stoppedPosition = (float)position.GetValue(scroll);
                 Assert.That(Mathf.Abs(stoppedPosition), Is.GreaterThan(1f), "Navigation must move before stopping.");
                 Assert.That(scrollType.GetProperty("IsSnapping").GetValue(scroll), Is.True);
-                scrollType.GetMethod("StopScroll").Invoke(scroll, null);
+                scrollType.GetMethod("Stop").Invoke(scroll, null);
                 for (var frame = 0; frame < 5; frame++)
                 {
                     yield return null;
