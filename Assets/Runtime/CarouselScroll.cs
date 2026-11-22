@@ -75,13 +75,13 @@ namespace SimpleScroll
             if (Scroller.IsInertia)
             {
                 positionIndex = Mathf.RoundToInt(ToScrollOffset(targetPosition) / CellStride);
-                targetPosition = ToScrollPosition(positionIndex * CellStride);
             }
             else if (positionIndex == _positionIndex && Mathf.Abs(velocity) >= 10f)
             {
                 positionIndex -= Math.Sign(velocity);
             }
 
+            targetPosition = ToScrollPosition(positionIndex * CellStride);
             SetPositionIndex(positionIndex, true, false);
             Scroller.SetTargetPosition(targetPosition);
         }

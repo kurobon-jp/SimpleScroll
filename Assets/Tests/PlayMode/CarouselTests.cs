@@ -2,6 +2,7 @@ using System.Collections;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
@@ -121,6 +122,63 @@ namespace SimpleScroll.Tests
             while (!scroll.IsIdling && Time.realtimeSinceStartup < deadline) yield return null;
             Assert.That(scroll.IsIdling, Is.True);
             Assert.That(scroll.ScrollPosition, Is.EqualTo(300f).Within(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator DragWithoutInertiaSnapsToSelectedCell()
+            => VerifyReleaseSnaps(false, false);
+
+        [UnityTest]
+        public IEnumerator ScrollbarReleaseWithoutInertiaSnapsToNearestCell()
+            => VerifyReleaseSnaps(false, true);
+
+        [UnityTest]
+        public IEnumerator DragWithInertiaKeepsCoastingToProjectedCell()
+            => VerifyReleaseSnaps(true, false);
+
+        private IEnumerator VerifyReleaseSnaps(bool inertia, bool scrollbar)
+        {
+            foreach (var axis in new[] { 0, 1 })
+            foreach (var speed in !inertia && !scrollbar ? new[] { 0f, 1000f } : new[] { scrollbar ? 0f : 1000f })
+            {
+                var scroll = Create(axis, false);
+                yield return null;
+                scroll.SetPositionIndex(3, false);
+                yield return null;
+                var direction = axis == 0 ? -1f : 1f;
+                var baseType = typeof(BaseScroll<IDataSource>);
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var scroller = baseType.GetProperty("Scroller", flags).GetValue(scroll);
+                var type = scroller.GetType();
+                type.GetField("_inertia", flags).SetValue(scroller, inertia);
+                if (scrollbar)
+                {
+                    var listener = baseType.GetInterface("SimpleScroll.IScrollbarEventListener");
+                    listener.GetMethod("OnScrollbarHandling").Invoke(scroll, new object[] { true });
+                    listener.GetMethod("OnScrollbarValueChanged").Invoke(scroll, new object[] { 340f / 900f });
+                    listener.GetMethod("OnScrollbarHandling").Invoke(scroll, new object[] { false });
+                }
+                else
+                {
+                    var pointer = new PointerEventData(null) { pointerDrag = _root, pointerId = 1 };
+                    ((IBeginDragHandler)scroll).OnBeginDrag(pointer);
+                    type.GetProperty("ScrollPosition", flags).SetValue(scroller, 340f * direction);
+                    type.GetField("_velocity", flags).SetValue(scroller, speed * direction);
+                    ((IEndDragHandler)scroll).OnEndDrag(pointer);
+                }
+                Assert.That(type.GetProperty("State", flags).GetValue(scroller),
+                    Is.EqualTo(inertia ? ScrollState.Coasting : ScrollState.Snapping));
+                var expected = (speed == 0f ? 300f : 400f) * direction;
+                Assert.That(type.GetProperty("TargetPosition", flags).GetValue(scroller), Is.EqualTo(expected));
+                var deadline = Time.realtimeSinceStartup + 4f;
+                while (!scroll.IsIdling && Time.realtimeSinceStartup < deadline) yield return null;
+                Assert.That(scroll.IsIdling, Is.True);
+                Assert.That(scroll.ScrollPosition, Is.EqualTo(expected).Within(0.001f));
+                Assert.That(_content.localPosition[axis], Is.EqualTo(expected).Within(0.001f));
+                Object.Destroy(_root);
+                Object.Destroy(_prefab);
+                yield return null;
+            }
         }
 
         [UnityTest]
