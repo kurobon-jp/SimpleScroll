@@ -6,6 +6,8 @@
 
 Scrollerが現在位置、目標位置、速度、移動状態を管理する。各Scrollはレイアウトから目的地を計算し、LazyLayoutは追従するindexとanchorを保持する。
 
+正規化位置の要求の保持、解除、通知中の要求置換の判定はBaseScrollで行う。BaseScrollがRepositionの前後でスクロール範囲を比較し、範囲が安定するまで位置を再適用する。LazyLayoutはSetNormalizedPositionをオーバーライドせず、実測による範囲更新を担当する。
+
 - 停止はScrollerの目標位置、速度、保留中の移動量をまとめてリセットする。
 - Idleでは補間しない。慣性移動から境界へ戻る動きはSnappingとして扱う。
 - レイアウト補正は現在位置と目標位置を一緒にずらす。

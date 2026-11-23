@@ -24,6 +24,8 @@ namespace SimpleScroll
         private int _pointerId = int.MinValue;
         private int _dataCount;
         private bool _isResized;
+        private float _normalizedPosition = float.NaN;
+        private uint _normalizedRequestVersion;
         private ScrollbarEventDetector _scrollbarEventDetector;
 
         internal Scroller Scroller
@@ -89,7 +91,7 @@ namespace SimpleScroll
 
         protected override void OnDisable()
         {
-            OnScrollInterrupted();
+            InterruptScroll();
             Scroller.Stop();
             _pointerId = int.MinValue;
             if (_scrollbarEventDetector == null) return;
@@ -178,12 +180,22 @@ namespace SimpleScroll
             var dataCount = _dataCount;
             if (dataCount == 0)
             {
-                OnScrollInterrupted();
+                InterruptScroll();
                 Scroller.MoveTo(0f, false);
             }
             PrepareScroll();
             var scrollDelta = Scroller.Update(Time.unscaledDeltaTime);
+            var previousExtent = Scroller.ScrollSize;
+            var requestVersion = _normalizedRequestVersion;
             var visibleRange = Reposition(scrollDelta, _isResized);
+            // Retain the destination across extent changes, unless layout callbacks replaced it.
+            if (!float.IsNaN(_normalizedPosition) && requestVersion == _normalizedRequestVersion)
+            {
+                Scroller.NormalizedPosition = _normalizedPosition;
+                if (requestVersion == _normalizedRequestVersion && previousExtent == Scroller.ScrollSize)
+                    _normalizedPosition = float.NaN;
+                Content.SetLocalPosition(Scroller.ScrollPosition, Scroller.Axis);
+            }
             UpdateScrollbar();
             _isResized = false;
             if (!VisibleRange.Equals(visibleRange))
@@ -207,9 +219,12 @@ namespace SimpleScroll
         {
             if (_pointerId != int.MinValue) Scroller.Stop();
             _pointerId = int.MinValue;
-            OnScrollInterrupted();
+            InterruptScroll();
+            _normalizedPosition = Mathf.Clamp01(normalizedPosition);
+            var requestVersion = _normalizedRequestVersion;
             Scroller.NormalizedPosition = normalizedPosition;
-            OnNormalizePositionChanged(Scroller.NormalizedPosition);
+            if (requestVersion == _normalizedRequestVersion)
+                OnNormalizePositionChanged(Scroller.NormalizedPosition);
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
@@ -217,7 +232,7 @@ namespace SimpleScroll
             if (DataSource == null || _pointerId != int.MinValue || !IsDraggable) return;
             if (!Scroller.OverScroll && Scroller.ScrollSize <= 0f) return;
             _pointerId = e.pointerId;
-            OnScrollInterrupted();
+            InterruptScroll();
             Scroller.OnBeginDrag(e);
         }
 
@@ -252,7 +267,7 @@ namespace SimpleScroll
                 if (normalizedPosition <= 0f && axialValue > 0f || normalizedPosition >= 1f && axialValue < 0f) return;
             }
 
-            OnScrollInterrupted();
+            InterruptScroll();
             OnScroll(axialValue);
         }
 
@@ -263,7 +278,7 @@ namespace SimpleScroll
 
         void IScrollbarEventListener.OnScrollbarHandling(bool isHandled)
         {
-            OnScrollInterrupted();
+            InterruptScroll();
             Scroller.Stop();
             if (isHandled) Scroller.State = ScrollState.Dragging;
             else OnDrag(ScrollPosition);
@@ -283,6 +298,13 @@ namespace SimpleScroll
 
         protected virtual void OnStopScroll(float velocity) {}
 
+        private void InterruptScroll()
+        {
+            unchecked { _normalizedRequestVersion++; }
+            _normalizedPosition = float.NaN;
+            OnScrollInterrupted();
+        }
+
         // Cancel layout-specific tracking before another source takes control of movement.
         protected virtual void OnScrollInterrupted() {}
 
@@ -291,7 +313,7 @@ namespace SimpleScroll
         protected void MoveToPosition(float position, bool smooth)
         {
             _pointerId = int.MinValue;
-            OnScrollInterrupted();
+            InterruptScroll();
             Scroller.MoveTo(position, smooth);
         }
 
@@ -303,7 +325,7 @@ namespace SimpleScroll
         public void Stop()
         {
             _pointerId = int.MinValue;
-            OnScrollInterrupted();
+            InterruptScroll();
             Scroller.Stop();
         }
 

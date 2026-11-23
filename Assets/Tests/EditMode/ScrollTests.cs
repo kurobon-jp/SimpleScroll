@@ -118,7 +118,7 @@ namespace SimpleScroll.Tests
             });
             scroll.SetNormalizedPosition(0.5f);
             Assert.That(handled, Is.True);
-            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            var pending = typeof(BaseScroll<ILazyLayoutDataSource>).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
             if (replace) Assert.That(pending.GetValue(scroll), Is.EqualTo(0.25f));
             else Assert.That(pending.GetValue(scroll), Is.NaN);
             for (var frame = 0; frame < 3; frame++) Tick(scroll);
@@ -199,7 +199,7 @@ namespace SimpleScroll.Tests
             });
             Tick(scroll);
             Assert.That(handled, Is.True, "The listener must run during the first measured position correction.");
-            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            var pending = typeof(BaseScroll<ILazyLayoutDataSource>).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
             if (action == 0 || action == 3) Assert.That(pending.GetValue(scroll), Is.NaN);
             else Assert.That(pending.GetValue(scroll), Is.EqualTo(action == 1 ? 0.5f : 1f));
             for (var frame = 0; frame < 20; frame++) Tick(scroll);
@@ -405,7 +405,7 @@ namespace SimpleScroll.Tests
             Assert.That(actualOffset, Is.InRange(0f, extent));
             Assert.That(actualOffset, Is.EqualTo(extent * normalizedPosition).Within(0.001f));
             Assert.That(_content.localPosition[axis], Is.EqualTo(scroll.ScrollPosition).Within(0.001f));
-            Assert.That(typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic)
+            Assert.That(typeof(BaseScroll<ILazyLayoutDataSource>).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(scroll), Is.NaN, "The pending destination should clear after measurement stabilizes.");
             if (normalizedPosition == 1f)
             {
@@ -428,7 +428,7 @@ namespace SimpleScroll.Tests
             scroll.SetDataSource(source);
             scroll.Refresh(1f);
             Tick(scroll);
-            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            var pending = typeof(BaseScroll<ILazyLayoutDataSource>).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(pending.GetValue(scroll), Is.EqualTo(1f));
             if (navigateToCell) scroll.SetPositionIndex(9, smooth: false);
             else scroll.Stop();
