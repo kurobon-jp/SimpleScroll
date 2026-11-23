@@ -16,6 +16,8 @@ namespace SimpleScroll
     internal class Scroller
     {
         internal const float VelocityThreshold = 10f;
+        private const float SnapResponse = 10f;
+        private const float PositionTolerance = 0.001f;
 
         [SerializeField] private RectTransform.Axis _axis;
         [SerializeField] private bool _inertia = true;
@@ -34,10 +36,12 @@ namespace SimpleScroll
         private ScrollState _state;
         private bool _stateChanged = true;
         private float _scrollPosition;
+        private float _targetPosition;
         private float _scrollDelta;
         private float _scrollSize = float.PositiveInfinity;
         private float _velocity;
         private float _elasticTime;
+        private double _snapRemainder;
         private Vector2 _pointerPoint;
         private RectTransform _dragTarget;
         private int _dragFrame;
@@ -62,6 +66,7 @@ namespace SimpleScroll
         internal float Velocity => _velocity * -Direction;
         internal float ScrollSensitivity => _scrollSensitivity * -Direction;
         internal bool OverScroll => _overScroll;
+        internal float TargetPosition => _targetPosition;
 
         internal ScrollEvent OnValueChanged => _onValueChanged;
 
@@ -78,9 +83,10 @@ namespace SimpleScroll
             get => _scrollPosition;
             set
             {
-                if (_scrollPosition == value) return;
-                _scrollPosition = _overScroll || float.IsInfinity(ScrollSize) ? value : ClampPosition(value);
-                _onValueChanged?.Invoke(value);
+                var position = _overScroll || float.IsInfinity(ScrollSize) ? value : ClampPosition(value);
+                if (_scrollPosition == position) return;
+                _scrollPosition = position;
+                _onValueChanged?.Invoke(position);
             }
         }
 
@@ -94,23 +100,17 @@ namespace SimpleScroll
             set
             {
                 if (ScrollSize == 0f || float.IsInfinity(ScrollSize)) return;
-                ScrollPosition = Mathf.Clamp01(value) * _scrollSize * Direction;
+                var dragging = IsDragging;
+                MoveTo(Mathf.Clamp01(value) * _scrollSize * Direction, false);
+                if (dragging) State = ScrollState.Dragging;
             }
         }
 
         internal void Initialize(float scrollSize = float.PositiveInfinity)
         {
             ScrollSize = Mathf.Max(0f, scrollSize);
-            if (float.IsInfinity(scrollSize)) return;
-            var min = 0f;
-            var max = scrollSize;
-            if (Axis == 0)
-            {
-                min = -scrollSize;
-                max = 0;
-            }
-
-            ScrollPosition = Mathf.Clamp(_scrollPosition, min, max);
+            ScrollPosition = ClampPosition(ScrollPosition);
+            _targetPosition = IsIdling ? ScrollPosition : ClampPosition(_targetPosition);
             _stateChanged = true;
         }
 
@@ -118,6 +118,7 @@ namespace SimpleScroll
         {
             _dragTarget = e.pointerDrag?.transform as RectTransform;
             if (_dragTarget == null) return;
+            Stop();
             State = ScrollState.Dragging;
             _velocity = 0f;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_dragTarget, e.position, e.pressEventCamera,
@@ -126,6 +127,7 @@ namespace SimpleScroll
 
         internal void OnDrag(PointerEventData e)
         {
+            if (!IsDragging || _dragTarget == null) return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_dragTarget, e.position, e.pressEventCamera,
                 out var localPoint);
             var delta = (localPoint - _pointerPoint)[Axis] * _dragSensitivity;
@@ -143,7 +145,6 @@ namespace SimpleScroll
             if (!_inertia)
             {
                 State = ScrollState.Idle;
-                // _velocity = 0f;
                 return ScrollPosition;
             }
 
@@ -152,15 +153,49 @@ namespace SimpleScroll
             return ScrollPosition + _velocity * _velocity / (_deceleration * 2f) * Mathf.Sign(_velocity);
         }
 
-        internal void OnSnap()
+        internal void MoveTo(float position, bool smooth)
+        {
+            Stop();
+            _targetPosition = ClampPosition(position);
+            if (smooth && Mathf.Abs(_targetPosition - ScrollPosition) > PositionTolerance)
+            {
+                OnSnap();
+            }
+            else
+            {
+                ScrollPosition = _targetPosition;
+            }
+        }
+
+        // Retarget a moving layout without resetting its velocity or restarting the movement.
+        internal void SetTargetPosition(float position)
+        {
+            _targetPosition = State == ScrollState.Coasting ? position : ClampPosition(position);
+            if (IsIdling && Mathf.Abs(_targetPosition - ScrollPosition) > PositionTolerance) OnSnap();
+        }
+
+        // Layout corrections move the coordinate system, including the destination.
+        internal void ShiftPosition(float delta)
+        {
+            _targetPosition += delta;
+            ScrollPosition += delta;
+            if (IsIdling) _targetPosition = ScrollPosition;
+        }
+
+        private void OnSnap()
         {
             State = ScrollState.Snapping;
             _velocity = 0f;
+            _snapRemainder = 0d;
         }
 
-        internal float Update(float targetPosition)
+        internal float Update(float deltaTime)
         {
-            var deltaTime = Time.unscaledDeltaTime;
+            if (IsIdling)
+            {
+                _velocity = 0f;
+                return 0f;
+            }
             if (State == ScrollState.Dragging)
             {
                 if (_dragFrame != Time.frameCount)
@@ -178,8 +213,11 @@ namespace SimpleScroll
                 }
             }
 
+            if (deltaTime <= 0f) return 0f;
             var speed = _velocity;
             var scrollPos = ScrollPosition;
+            if (IsSnapping) _targetPosition = ClampPosition(_targetPosition);
+            var targetPosition = _targetPosition;
             if (State == ScrollState.Coasting)
             {
                 var absSpeed = Mathf.Abs(speed);
@@ -199,39 +237,48 @@ namespace SimpleScroll
                 _velocity = speed;
                 if (Mathf.Abs(speed) < VelocityThreshold)
                 {
-                    Stop();
+                    _targetPosition = ClampPosition(targetPosition);
+                    OnSnap();
                     _elasticTime = 0f;
                 }
             }
             else
             {
-                scrollPos = Mathf.Lerp(scrollPos, targetPosition, deltaTime * 10f);
+                // Carry sub-float steps forward instead of stalling at very high frame rates.
+                var nextPosition = scrollPos + ((double)targetPosition - scrollPos) *
+                    Mathf.Clamp01(deltaTime * SnapResponse) + _snapRemainder;
+                scrollPos = (float)nextPosition;
+                _snapRemainder = nextPosition - scrollPos;
                 _velocity = 0;
             }
 
-            var scrollDelta = scrollPos - ScrollPosition;
-            if (Mathf.Abs(scrollDelta) > 0.001f)
+            var previousPosition = ScrollPosition;
+            if (Mathf.Abs(_targetPosition - scrollPos) > PositionTolerance)
             {
                 ScrollPosition = scrollPos;
             }
             else
             {
-                State = ScrollState.Idle;
-                ScrollPosition = targetPosition;
+                MoveTo(_targetPosition, false);
             }
 
-            return scrollDelta;
+            return ScrollPosition - previousPosition;
         }
 
         internal void Stop()
         {
             State = ScrollState.Idle;
+            _targetPosition = ScrollPosition;
             _velocity = 0f;
+            _scrollDelta = 0f;
+            _elasticTime = 0f;
+            _snapRemainder = 0d;
         }
 
         internal float ClampPosition(float position)
         {
             var scrollSize = ScrollSize;
+            if (float.IsInfinity(scrollSize)) return position;
             var axis = Axis;
             var min = axis == 0 ? -scrollSize : 0f;
             var max = axis == 0 ? 0f : scrollSize;

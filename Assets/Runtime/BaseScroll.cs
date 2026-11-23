@@ -24,6 +24,8 @@ namespace SimpleScroll
         private int _pointerId = int.MinValue;
         private int _dataCount;
         private bool _isResized;
+        private float _normalizedPosition = float.NaN;
+        private uint _normalizedRequestVersion;
         private ScrollbarEventDetector _scrollbarEventDetector;
 
         internal Scroller Scroller
@@ -89,6 +91,9 @@ namespace SimpleScroll
 
         protected override void OnDisable()
         {
+            InterruptScroll();
+            Scroller.Stop();
+            _pointerId = int.MinValue;
             if (_scrollbarEventDetector == null) return;
             Destroy(_scrollbarEventDetector);
             _scrollbarEventDetector = null;
@@ -144,13 +149,19 @@ namespace SimpleScroll
             Resize();
         }
 
+        /// <summary>Refreshes data and layout at the requested normalized position before cells are updated.</summary>
         public virtual void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
         {
             Refresh(isRefreshVisibleCells);
             SetNormalizedPosition(normalizedPosition);
         }
 
-        protected void UpdatePosition(float targetPosition)
+        protected virtual void LateUpdate()
+        {
+            UpdatePosition();
+        }
+
+        protected void EnsureLayout()
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
@@ -160,10 +171,32 @@ namespace SimpleScroll
                 _dataCount = dataCount;
                 _isDirty = false;
             }
+        }
 
-            var scrollDelta = Scroller.Update(targetPosition);
-            UpdateScrollbar();
+        protected void UpdatePosition()
+        {
+            if (DataSource == null) return;
+            EnsureLayout();
+            var dataCount = _dataCount;
+            if (dataCount == 0)
+            {
+                InterruptScroll();
+                Scroller.MoveTo(0f, false);
+            }
+            PrepareScroll();
+            var scrollDelta = Scroller.Update(Time.unscaledDeltaTime);
+            var previousExtent = Scroller.ScrollSize;
+            var requestVersion = _normalizedRequestVersion;
             var visibleRange = Reposition(scrollDelta, _isResized);
+            // Retain the destination across extent changes, unless layout callbacks replaced it.
+            if (!float.IsNaN(_normalizedPosition) && requestVersion == _normalizedRequestVersion)
+            {
+                Scroller.NormalizedPosition = _normalizedPosition;
+                if (requestVersion == _normalizedRequestVersion && previousExtent == Scroller.ScrollSize)
+                    _normalizedPosition = float.NaN;
+                Content.SetLocalPosition(Scroller.ScrollPosition, Scroller.Axis);
+            }
+            UpdateScrollbar();
             _isResized = false;
             if (!VisibleRange.Equals(visibleRange))
             {
@@ -174,10 +207,24 @@ namespace SimpleScroll
             Scroller.NotifyScrollStateChanged();
         }
 
-        private void SetNormalizedPosition(float normalizedPosition)
+        [Obsolete("Use MoveToPosition(position, smooth) to start movement and UpdatePosition() to update it.")]
+        protected void UpdatePosition(float targetPosition)
         {
+            Scroller.SetTargetPosition(targetPosition);
+            UpdatePosition();
+        }
+
+        /// <summary>Sets a position between 0 and 1 without rebinding cells. Requires a finite, initialized layout.</summary>
+        public virtual void SetNormalizedPosition(float normalizedPosition)
+        {
+            if (_pointerId != int.MinValue) Scroller.Stop();
+            _pointerId = int.MinValue;
+            InterruptScroll();
+            _normalizedPosition = Mathf.Clamp01(normalizedPosition);
+            var requestVersion = _normalizedRequestVersion;
             Scroller.NormalizedPosition = normalizedPosition;
-            OnNormalizePositionChanged(Scroller.NormalizedPosition);
+            if (requestVersion == _normalizedRequestVersion)
+                OnNormalizePositionChanged(Scroller.NormalizedPosition);
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData e)
@@ -185,6 +232,7 @@ namespace SimpleScroll
             if (DataSource == null || _pointerId != int.MinValue || !IsDraggable) return;
             if (!Scroller.OverScroll && Scroller.ScrollSize <= 0f) return;
             _pointerId = e.pointerId;
+            InterruptScroll();
             Scroller.OnBeginDrag(e);
         }
 
@@ -198,7 +246,11 @@ namespace SimpleScroll
         {
             if (DataSource == null || _pointerId != e.pointerId) return;
             _pointerId = int.MinValue;
-            if (!IsDraggable) return;
+            if (!IsDraggable)
+            {
+                Stop();
+                return;
+            }
             var targetPosition = Scroller.OnEndDrag(e);
             OnDrag(targetPosition);
         }
@@ -215,7 +267,7 @@ namespace SimpleScroll
                 if (normalizedPosition <= 0f && axialValue > 0f || normalizedPosition >= 1f && axialValue < 0f) return;
             }
 
-            Scroller.OnSnap();
+            InterruptScroll();
             OnScroll(axialValue);
         }
 
@@ -226,23 +278,62 @@ namespace SimpleScroll
 
         void IScrollbarEventListener.OnScrollbarHandling(bool isHandled)
         {
-            Scroller.State = isHandled ? ScrollState.Dragging : ScrollState.Idle;
+            InterruptScroll();
+            Scroller.Stop();
+            if (isHandled) Scroller.State = ScrollState.Dragging;
+            else OnDrag(ScrollPosition);
         }
 
         protected abstract float GetScrollSize();
         protected abstract Range Reposition(float scrollDelta, bool isResized);
-        protected abstract void OnDrag(float targetPosition);
-        protected abstract void OnScroll(float delta);
-        protected abstract void OnStopScroll(float velocity);
+        protected virtual void OnDrag(float targetPosition)
+        {
+            Scroller.SetTargetPosition(targetPosition);
+        }
+
+        protected virtual void OnScroll(float delta)
+        {
+            Scroller.MoveTo(ScrollPosition + delta * Scroller.ScrollSensitivity, true);
+        }
+
+        protected virtual void OnStopScroll(float velocity) {}
+
+        private void InterruptScroll()
+        {
+            unchecked { _normalizedRequestVersion++; }
+            _normalizedPosition = float.NaN;
+            OnScrollInterrupted();
+        }
+
+        // Cancel layout-specific tracking before another source takes control of movement.
+        protected virtual void OnScrollInterrupted() {}
+
+        protected virtual void PrepareScroll() {}
+
+        protected void MoveToPosition(float position, bool smooth)
+        {
+            _pointerId = int.MinValue;
+            InterruptScroll();
+            Scroller.MoveTo(position, smooth);
+        }
 
         protected virtual void OnNormalizePositionChanged(float normalizedPosition)
         {
         }
 
+        /// <summary>Cancels movement and cell tracking at the current position.</summary>
+        public void Stop()
+        {
+            _pointerId = int.MinValue;
+            InterruptScroll();
+            Scroller.Stop();
+        }
+
+        [Obsolete("Use Stop() to stop at the current position. CarouselScroll.SnapToNearest() explicitly snaps to a cell.")]
         public void StopScroll()
         {
             var velocity = Scroller.Velocity;
-            Scroller.Stop();
+            Stop();
             OnStopScroll(velocity);
         }
 

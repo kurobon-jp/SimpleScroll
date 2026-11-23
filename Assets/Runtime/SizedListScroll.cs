@@ -9,7 +9,6 @@ namespace SimpleScroll
         [SerializeField] private ContentPadding _contentPadding;
 
         private float[] _offsets = Array.Empty<float>();
-        private float _targetPosition;
 
         public ContentPadding ContentPadding
         {
@@ -52,20 +51,6 @@ namespace SimpleScroll
 
             offset += _contentPadding.End;
             return Mathf.Max(0f, offset - ViewportSize);
-        }
-
-        protected override void OnDrag(float targetPosition)
-        {
-            _targetPosition = targetPosition;
-        }
-
-        protected override void OnScroll(float scrollDelta)
-        {
-            _targetPosition = Scroller.ScrollPosition + scrollDelta * Scroller.ScrollSensitivity;
-        }
-
-        protected override void OnStopScroll(float velocity)
-        {
         }
 
         protected override Range Reposition(float scrollDelta, bool isResized)
@@ -122,24 +107,10 @@ namespace SimpleScroll
             return visibleRange;
         }
 
-        private void LateUpdate()
-        {
-            if (Scroller.IsIdling || Scroller.IsSnapping)
-            {
-                _targetPosition = ClampPosition(_targetPosition);
-            }
-
-            UpdatePosition(_targetPosition);
-        }
-
-        protected override void OnNormalizePositionChanged(float _)
-        {
-            _targetPosition = Scroller.ScrollPosition;
-        }
-
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
+            EnsureLayout();
             var dataCount = DataSource.GetDataCount();
             if (dataCount <= 0) return;
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
@@ -151,16 +122,7 @@ namespace SimpleScroll
         public void SetScrollPosition(float position, bool smooth = true)
         {
             if (DataSource == null) return;
-            Scroller.Stop();
-            _targetPosition = ClampPosition(position);
-            if (!smooth)
-            {
-                Scroller.ScrollPosition = _targetPosition;
-            }
-            else
-            {
-                Scroller.OnSnap();
-            }
+            MoveToPosition(position, smooth);
         }
     }
 }

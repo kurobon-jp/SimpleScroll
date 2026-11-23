@@ -93,24 +93,21 @@ _scroll.SetPositionIndex(20, anchor: 0.5f, smooth: true);
 
 For lists, `anchor` specifies alignment within the viewport: `0` for the start, `0.5` for the center, and `1` for the end. The target is constrained by the available scroll range.
 
-To refresh at a normalized position, use `Refresh(0f)` for the start or `Refresh(1f)` for the end. Call `Refresh()` before navigating after a data change so size and offset information is up to date.
-
-#### Refresh parameters
+Set a normalized position without rebinding cells with `SetNormalizedPosition(0f)` for the start or `SetNormalizedPosition(1f)` for the end. After changing data, call `Refresh()` first to update sizes and offsets.
 
 ```csharp
-void Refresh(float normalizedPosition, bool isRefreshVisibleCells = true)
+_scroll.Refresh(1f, false); // Update at the end while retaining visible cells.
 ```
 
-Recalculate the layout and move to the specified normalized position.
+Use `Refresh(normalizedPosition, isRefreshVisibleCells)` to update data and layout at a requested position in one call. Use `Refresh(bool)` to update without specifying a position, and `SetNormalizedPosition()` to change only the position. All three remain supported APIs.
 
-| Parameter | Description |
-| --- | --- |
-| `normalizedPosition` | Position within the available scroll range (`0`–`1`): `0` is the start and `1` is the end. |
-| `isRefreshVisibleCells` | When `true` (the default), also rebind data to visible cells. When `false`, keep visible cells and recalculate the layout. Use `true` if their displayed content has changed. |
+`Refresh(false)` recalculates the layout while retaining visible cells. `Refresh()` also rebinds them. Normalized navigation requires an initialized, finite scroll range; looping carousels have no normalized position.
 
-Use `Refresh(bool isRefreshVisibleCells = true)` to update without specifying a normalized position.
+`CarouselScroll.SnapToNearest()` explicitly animates to the nearest cell; pass `false` to snap immediately. `Stop()` holds the current position, including between carousel cells.
 
-`LazyLayoutListScroll` calculates the total length using estimated sizes for unmeasured cells. For `normalizedPosition` values other than `0` and `1`, the resulting position may differ from the position obtained after measuring all cells. Use `SetPositionIndex` when you want to navigate to a specific item.
+`StopScroll()` and the protected `UpdatePosition(float)` remain available with obsolete warnings. See [API migration](docs/api-migration.md) for replacements and compatibility behavior.
+
+`LazyLayoutListScroll` uses estimated sizes for unmeasured cells. Intermediate normalized positions can change as cells are measured; use `SetPositionIndex` to navigate to a specific item.
 
 ## Data sources and cell reuse
 
