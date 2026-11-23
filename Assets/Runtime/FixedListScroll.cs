@@ -92,6 +92,7 @@ namespace SimpleScroll
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
+            EnsureLayout();
             var dataCount = DataSource.GetDataCount();
             positionIndex = Mathf.Clamp(positionIndex, 0, dataCount - 1);
             var offset = CellStride * positionIndex + _contentPadding.Start;

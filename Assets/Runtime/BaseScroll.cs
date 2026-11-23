@@ -159,7 +159,7 @@ namespace SimpleScroll
             UpdatePosition();
         }
 
-        protected void UpdatePosition()
+        protected void EnsureLayout()
         {
             if (DataSource == null) return;
             var dataCount = DataSource.GetDataCount();
@@ -169,7 +169,13 @@ namespace SimpleScroll
                 _dataCount = dataCount;
                 _isDirty = false;
             }
+        }
 
+        protected void UpdatePosition()
+        {
+            if (DataSource == null) return;
+            EnsureLayout();
+            var dataCount = _dataCount;
             if (dataCount == 0)
             {
                 OnScrollInterrupted();

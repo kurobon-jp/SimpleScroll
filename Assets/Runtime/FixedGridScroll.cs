@@ -115,6 +115,7 @@ namespace SimpleScroll
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)
         {
             if (DataSource == null) return;
+            EnsureLayout();
             var dataCount = DataSource.GetDataCount();
             var axis = Scroller.Axis;
             var rowStride = CellStride[axis];

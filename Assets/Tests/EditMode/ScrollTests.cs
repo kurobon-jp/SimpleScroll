@@ -519,6 +519,25 @@ namespace SimpleScroll.Tests
             if (_prefab != null) Object.DestroyImmediate(_prefab);
         }
 
+        [TestCase(typeof(FixedListScroll), 0)]
+        [TestCase(typeof(FixedListScroll), 1)]
+        [TestCase(typeof(FixedGridScroll), 0)]
+        [TestCase(typeof(FixedGridScroll), 1)]
+        [TestCase(typeof(SizedListScroll), 0)]
+        [TestCase(typeof(SizedListScroll), 1)]
+        public void IndexNavigationBeforeFirstUpdateCentersRequestedCell(System.Type scrollType, int axis)
+        {
+            var scroll = (Component)typeof(ScrollTests).GetMethod(nameof(Create), BindingFlags.Instance | BindingFlags.NonPublic)
+                .MakeGenericMethod(scrollType).Invoke(this, new object[] { axis });
+            var source = new Source { Prefab = _prefab };
+            scrollType.GetMethod("SetDataSource").Invoke(scroll, new object[] { source });
+            scrollType.GetMethod("SetPositionIndex").Invoke(scroll, new object[] { 50, 0.5f, false });
+            Assert.That(source.BindCount, Is.EqualTo(0), "Layout initialization must not bind cells at the old position.");
+            scrollType.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(scroll, null);
+            Assert.That(source.Cells[50].transform.localPosition[axis] + _content.localPosition[axis], Is.EqualTo(0f).Within(0.001f));
+            Assert.That(scrollType.GetProperty("IsIdling").GetValue(scroll), Is.True);
+        }
+
         [TestCase(0, 0f, -100f)]
         [TestCase(0, 0.5f, 0f)]
         [TestCase(0, 1f, 100f)]
