@@ -16,6 +16,7 @@ namespace SimpleScroll
         private float _targetAnchor;
         private bool _targetSmooth;
         private float _normalizedPosition = float.NaN;
+        private uint _normalizedRequestVersion;
 
         public ContentPadding ContentPadding
         {
@@ -45,6 +46,7 @@ namespace SimpleScroll
 
         protected override void OnScrollInterrupted()
         {
+            unchecked { _normalizedRequestVersion++; }
             _targetIndex = -1;
             _normalizedPosition = float.NaN;
         }
@@ -143,9 +145,11 @@ namespace SimpleScroll
             if (!float.IsNaN(_normalizedPosition))
             {
                 var normalizedPosition = _normalizedPosition;
+                var expectedVersion = unchecked(_normalizedRequestVersion + 1);
                 base.SetNormalizedPosition(normalizedPosition);
-                // The base setter clears tracking; retain this request while measurement changes the extent.
-                _normalizedPosition = previousExtent == Scroller.ScrollSize ? float.NaN : normalizedPosition;
+                // The base setter interrupts once. Additional interruptions belong to listeners.
+                if (_normalizedRequestVersion == expectedVersion)
+                    _normalizedPosition = previousExtent == Scroller.ScrollSize ? float.NaN : normalizedPosition;
             }
             Content.SetLocalPosition(Scroller.ScrollPosition, axis);
             
@@ -198,8 +202,9 @@ namespace SimpleScroll
 
         public override void SetNormalizedPosition(float normalizedPosition)
         {
+            var expectedVersion = unchecked(_normalizedRequestVersion + 1);
             base.SetNormalizedPosition(normalizedPosition);
-            _normalizedPosition = normalizedPosition;
+            if (_normalizedRequestVersion == expectedVersion) _normalizedPosition = normalizedPosition;
         }
 
         public void SetPositionIndex(int positionIndex, float anchor = 0.5f, bool smooth = true)

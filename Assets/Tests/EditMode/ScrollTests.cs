@@ -96,6 +96,36 @@ namespace SimpleScroll.Tests
             Assert.That(scroll.ScrollPosition, Is.EqualTo(index == 0 ? 0f : (axis == 0 ? -700f : 700f)));
         }
 
+        [TestCase(0, false)]
+        [TestCase(1, false)]
+        [TestCase(0, true)]
+        [TestCase(1, true)]
+        public void DirectNormalizedRequestRespectsListenerInterruption(int axis, bool replace)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            scroll.SetDataSource(new LazySource { Prefab = _prefab });
+            Tick(scroll);
+            var changed = new ScrollEvent();
+            var scroller = typeof(BaseScroll<ILazyLayoutDataSource>).GetProperty("Scroller", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(scroll);
+            scroller.GetType().GetField("_onValueChanged", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, changed);
+            var handled = false;
+            changed.AddListener(value =>
+            {
+                if (handled) return;
+                handled = true;
+                if (replace) scroll.SetNormalizedPosition(0.25f);
+                else scroll.Stop();
+            });
+            scroll.SetNormalizedPosition(0.5f);
+            Assert.That(handled, Is.True);
+            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (replace) Assert.That(pending.GetValue(scroll), Is.EqualTo(0.25f));
+            else Assert.That(pending.GetValue(scroll), Is.NaN);
+            for (var frame = 0; frame < 3; frame++) Tick(scroll);
+            Assert.That(scroll.NormalizedPosition, Is.EqualTo(replace ? 0.25f : 0.5f).Within(0.001f));
+            Assert.That(pending.GetValue(scroll), Is.NaN);
+        }
+
         [TestCase(0, 3)]
         [TestCase(0, 0)]
         [TestCase(1, 3)]
@@ -135,6 +165,51 @@ namespace SimpleScroll.Tests
             position.SetValue(scroller, expected == 0f ? -start * 2f : expected * 3f);
             Assert.That(values, Is.EqualTo(new[] { expected }));
             Assert.That(scroll.ScrollPosition, Is.EqualTo(expected));
+        }
+
+        [TestCase(0, 0)]
+        [TestCase(1, 0)]
+        [TestCase(0, 1)]
+        [TestCase(1, 1)]
+        [TestCase(0, 2)]
+        [TestCase(1, 2)]
+        [TestCase(0, 3)]
+        [TestCase(1, 3)]
+        public void MeasurementNotificationDoesNotRestoreCanceledOrReplacedRequest(int axis, int action)
+        {
+            var scroll = Create<LazyLayoutListScroll>(axis);
+            ((RectTransform)_prefab.transform).sizeDelta = new Vector2(40f, 40f);
+            var source = new MeasuredSource { Prefab = _prefab };
+            source.AddRange(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            scroll.SetDataSource(source);
+            scroll.Refresh(1f);
+            var changed = new ScrollEvent();
+            var scroller = typeof(BaseScroll<ILazyLayoutDataSource>).GetProperty("Scroller", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(scroll);
+            scroller.GetType().GetField("_onValueChanged", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(scroller, changed);
+            var handled = false;
+            var direction = axis == 0 ? -1f : 1f;
+            changed.AddListener(value =>
+            {
+                if (handled || Mathf.Abs(value * direction - 520f) > 0.001f) return;
+                handled = true;
+                if (action == 0) scroll.Stop();
+                else if (action == 1) scroll.SetNormalizedPosition(0.5f);
+                else if (action == 2) scroll.SetNormalizedPosition(1f);
+                else scroll.SetPositionIndex(9, smooth: false);
+            });
+            Tick(scroll);
+            Assert.That(handled, Is.True, "The listener must run during the first measured position correction.");
+            var pending = typeof(LazyLayoutListScroll).GetField("_normalizedPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (action == 0 || action == 3) Assert.That(pending.GetValue(scroll), Is.NaN);
+            else Assert.That(pending.GetValue(scroll), Is.EqualTo(action == 1 ? 0.5f : 1f));
+            for (var frame = 0; frame < 20; frame++) Tick(scroll);
+            Assert.That(pending.GetValue(scroll), Is.NaN);
+            if (action == 0) Assert.That(scroll.ScrollPosition * direction, Is.EqualTo(520f).Within(0.001f));
+            else if (action == 1 || action == 2)
+            {
+                var extent = Mathf.Max(0f, source.GetTotalContentSize(default, 100f, 0f) - 300f);
+                Assert.That(scroll.ScrollPosition * direction, Is.EqualTo(extent * (action == 1 ? 0.5f : 1f)).Within(0.001f));
+            }
         }
 
         [TestCase(0, false)]
